@@ -1,0 +1,12 @@
+{"type": "command", "source": "uname -a", "destination": "_commands/uname"}
+{"type": "command", "source": "dpkg -l", "destination": "_commands/dpkg"}
+{"type": "command", "source": "pip list", "destination": "_commands/python-version"}
+{"type": "command", "source": "python3 --version", "destination": "_commands/pip-list"}
+{"type": "command", "source": "virsh list --all", "destination": "_commands/virsh-list-all"}
+{"type": "command", "source": "ip link", "destination": "_commands/ip-link"}
+{"type": "command", "source": "ip addr", "destination": "_commands/ip-addr"}
+{"type": "command", "source": "ip route", "destination": "_commands/ip-route"}
+{"type": "file", "source": "/var/log/syslog"}
+{"type": "directory", "source": "/var/log/libvirt"}
+{"type": "directory", "source": "/srv/shakenfist/instances", "exclude": "hd[ac-z]"}
+{"type": "commandEmitter", "source": "for item in `find /var/run/netns -type f | sed 's/.*\///'`; do echo {\"type\": \"command\", \"source\": \"ip netns exec $item ip link\", \"destination\": \"_commands/$item-ip-link\"}; echo {\"type\": \"command\", \"source\": \"ip netns exec $item ip addr\", \"destination\": \"_commands/$item-ip-addr\"}; echo {\"type\": \"command\", \"source\": \"ip netns exec $item ip route\", \"destination\": \"_commands/$item-ip-route\"}; done"}
