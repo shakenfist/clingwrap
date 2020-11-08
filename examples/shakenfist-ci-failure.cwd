@@ -63,3 +63,7 @@ commands:
     destination: /srv/shakenfist/instances
     directory: /srv/shakenfist/instances
     exclude: "hd[ac-z]"
+
+  - name: Running processes
+    destination: _commands/ps-aux
+    shell: ps -aux
