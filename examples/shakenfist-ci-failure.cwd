@@ -51,6 +51,23 @@ commands:
       "
       done
 
+  - name: vxlan networks
+    shell_emitter: |
+      for item in `ip link | egrep ": vxlan-[0-9]" | cut -f 2 -d ":" | sed 's/ //'`
+      do
+        echo "commands:
+      - name: vxlan iterface (vxlan $item)
+        destination: _commands/$item/ip-link
+        shell: ip -d link show $item
+      - name: vxlan forwarding (vxlan $item)
+        destination: _commands/$item/brdge-fdb-show
+        shell: bridge fdb show dev $item
+      - name: vxlan bridge (vxlan $item)
+        destination: _commands/$item/brctl-show
+        shell: brctl show br-$item
+      "
+      done
+
   - name: syslog
     destination: var/log/syslog
     file: /var/log/syslog
