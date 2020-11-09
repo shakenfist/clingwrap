@@ -1,1 +1,5 @@
 oslo.concurrency    # apache2
+click>=7.1.1        # bsd
+tox                 # mit
+flake8              # mit
+testtools           # mit

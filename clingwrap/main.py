@@ -1,8 +1,11 @@
+import click
 import io
 import json
+import logging
 import os
 import re
 import sys
+import yaml
 import zipfile
 
 from oslo_concurrency import processutils
@@ -18,18 +21,21 @@ from oslo_concurrency import processutils
 #     'destination': where to place the file in the bucket, optional for files
 
 
+class UnsupportedJobException(Exception):
+    pass
+
+
 class Job(object):
     def __init__(self, definition):
         self.definition = definition
-
-        self.type = self.definition['type']
-        self.source = self.definition['source']
-        self.destination = self.definition.get('destination', self.source)
-
+        self.destination = self.definition.get('destination')
         self.read_flo = None
 
     def items(self):
         return []
+
+    def execute(self):
+        pass
 
     def cleanup(self):
         if self.read_flo:
@@ -40,7 +46,12 @@ class FileJob(Job):
     # {"type": "file", "source": "/var/log/syslog"}
     def __init__(self, definition):
         super(FileJob, self).__init__(definition)
-        self.read_flo = open(definition['source'], 'rb')
+
+    def verb(self):
+        return 'file'
+
+    def execute(self):
+        self.read_flo = open(self.definition.get('file'), 'rb')
 
 
 class DirectoryJob(Job):
@@ -52,9 +63,12 @@ class DirectoryJob(Job):
         else:
             self.exclude = None
 
+    def verb(self):
+        return 'directory'
+
     def items(self, path=None):
         if not path:
-            path = self.source
+            path = self.definition.get('directory')
 
         for ent in os.listdir(path):
             p = os.path.join(path, ent)
@@ -65,26 +79,40 @@ class DirectoryJob(Job):
                 if self.exclude:
                     if self.exclude.match(ent):
                         continue
-                yield '{"type": "file", "source": "%s"}' % p
+                yield {
+                    'name': 'Emitted file archival (%s)' % p,
+                    'file': p,
+                    'destination': p
+                }
 
 
 class CommandJob(Job):
     # {"type": "command", "source": "pip3 list", "destination": "commands/pip3-list"}
     def __init__(self, definition):
         super(CommandJob, self).__init__(definition)
+
+    def verb(self):
+        return 'shell'
+
+    def execute(self):
         stdout, stderr = processutils.execute(
-            self.definition['source'], shell=True)
+            self.definition.get('shell'), shell=True)
         self.read_flo = io.StringIO(
             '# %s\n\n----- stdout -----\n%s\n\n----- stderr -----\n%s'
-            % (self.definition['source'], stdout.rstrip(), stderr.rstrip()))
+            % (self.definition.get('shell'), stdout.rstrip(), stderr.rstrip()))
 
 
 class CommandEmitterJob(Job):
     # {"type": "commandEmitter", "source": "...thing which outputs commands..."}
     def __init__(self, definition):
         super(CommandEmitterJob, self).__init__(definition)
+
+    def verb(self):
+        return 'shell_emitter'
+
+    def execute(self):
         stdout, _ = processutils.execute(
-            self.definition['source'], shell=True)
+            self.definition.get('shell_emitter'), shell=True)
         self.commands = stdout.rstrip().split('\n')
 
     def items(self):
@@ -94,32 +122,69 @@ class CommandEmitterJob(Job):
                 yield(cmd)
 
 
-JOBS = {
-    'file': FileJob,
-    'directory': DirectoryJob,
-    'command': CommandJob,
-    'commandEmitter': CommandEmitterJob,
-}
+JOBS = [FileJob, DirectoryJob, CommandJob, CommandEmitterJob]
 
 
-def cli():
-    zipped = zipfile.ZipFile(sys.argv[1], 'w', zipfile.ZIP_DEFLATED)
+@click.group()
+@click.option('--verbose/--no-verbose', default=False)
+@click.pass_context
+def cli(ctx, verbose=None):
+    if verbose:
+        LOG.setLevel(logging.INFO)
+
+
+@click.command()
+@click.option('--target', help='The name of the target configuration to use')
+@click.option('--output', help='The path and file to write the output to')
+@click.pass_context
+def gather(ctx, target=None, output=None):
+    if not target:
+        print('Please specify a target to collect with --target.')
+        sys.exit(1)
+    if not output:
+        print('Please specify an output location with --output.')
+        sys.exit(1)
+
+    zipped = zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED)
+
+    # Collect our commands from the target file or stdin
+    cmds = ''
+    if target:
+        with open(target) as f:
+            cmds = f.read()
+    else:
+        cmds = sys.stdin.read()
+
+    # Parse commands
+    parsed_commands = yaml.load(cmds)
+    print(parsed_commands)
 
     # Read and execute commands
-    queued = sys.stdin.readlines()
+    queued = parsed_commands.get('commands')
     while queued:
         print('Queued commands: %d' % len(queued))
-        item = queued.pop()
-        print('>> %s' % item.rstrip())
+        c = queued.pop()
 
-        c = json.loads(item.rstrip())
-        j = JOBS[c['type']](c)
+        job = None
+        for j in JOBS:
+            candidate_job = j(c)
+            if candidate_job.verb() in c:
+                job = candidate_job
+                break
+            candidate_job.cleanup()
 
-        if j.read_flo:
-            zipped.writestr(j.destination, j.read_flo.read())
-        for i in j.items():
+        if not job:
+            raise UnsupportedJobException(c)
+
+        job.execute()
+        if job.read_flo:
+            zipped.writestr(job.destination, job.read_flo.read())
+        for i in job.items():
             queued.append(i)
 
-        j.cleanup()
+        job.cleanup()
 
     zipped.close()
+
+
+cli.add_command(gather)
