@@ -161,7 +161,7 @@ def gather(ctx, target=None, output=None):
         cmds = sys.stdin.read()
 
     # Parse commands
-    parsed_commands = yaml.load(cmds)
+    parsed_commands = yaml.load(cmds, Loader=yaml.SafeLoader)
     print(parsed_commands)
 
     # Read and execute commands
