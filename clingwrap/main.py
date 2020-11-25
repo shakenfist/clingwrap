@@ -10,6 +10,11 @@ import zipfile
 
 from oslo_concurrency import processutils
 
+logging.basicConfig(level=logging.INFO)
+
+LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.INFO)
+
 # Read simple command blocks from stdin and execute them. Command blocks are JSON with
 # one command per line and look like this:
 #
@@ -130,7 +135,7 @@ JOBS = [FileJob, DirectoryJob, CommandJob, CommandEmitterJob]
 @click.pass_context
 def cli(ctx, verbose=None):
     if verbose:
-        LOG.setLevel(logging.INFO)
+        LOG.setLevel(logging.DEBUG)
 
 
 @click.command()
