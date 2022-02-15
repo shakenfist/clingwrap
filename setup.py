@@ -28,7 +28,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     data_files=[
         (
-            'share/examples/clingwrap', [
+            'share/clingwrap', [
                 'examples/shakenfist-ci-failure.cwd'
             ]
         )
