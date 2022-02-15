@@ -4,6 +4,10 @@ commands:
     destination: _commands/uname
     shell: uname -a
 
+  - name: Descriptive information about the OS
+    destination: etc/os-release
+    file: /etc/os-release
+
   - name: Installed system OS packages and versions
     destination: _commands/dpkg
     shell: dpkg -l
@@ -11,6 +15,10 @@ commands:
   - name: Installed system pip packages and versions
     destination: _commands/pip
     shell: pip list
+
+  - name: Installed Shaken Fist pip packages and versions
+    destination: _commands/pip-sf
+    shell: /srv/shakenfist/venv/bin/pip list
 
   - name: Python version
     destination: _commands/python-version
@@ -76,10 +84,14 @@ commands:
     destination: var/log/libvirt
     directory: /var/log/libvirt
 
+  - name: apache2 logs
+    destination: var/log/apache2
+    directory: /var/log/apache2
+
   - name: Shaken Fist instances
     destination: /srv/shakenfist/instances
     directory: /srv/shakenfist/instances
-    exclude: "hd[ac-z]"
+    exclude: "([hsv]d[ac-z]|nvme[0-9])"
 
   - name: Running processes
     destination: _commands/ps-aux
