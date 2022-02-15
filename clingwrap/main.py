@@ -56,7 +56,8 @@ class FileJob(Job):
         return 'file'
 
     def execute(self):
-        self.read_flo = open(self.definition.get('file'), 'rb')
+        if os.path.exists(self.definition.get('file')):
+            self.read_flo = open(self.definition.get('file'), 'rb')
 
 
 class DirectoryJob(Job):
@@ -74,6 +75,9 @@ class DirectoryJob(Job):
     def items(self, path=None):
         if not path:
             path = self.definition.get('directory')
+
+        if not os.path.exists(path):
+            return
 
         for ent in os.listdir(path):
             p = os.path.join(path, ent)
