@@ -14,11 +14,11 @@ commands:
 
   - name: Installed system pip packages and versions
     destination: _commands/pip
-    shell: pip list
+    shell: pip freeze
 
   - name: Installed Shaken Fist pip packages and versions
     destination: _commands/pip-sf
-    shell: /srv/shakenfist/venv/bin/pip list
+    shell: /srv/shakenfist/venv/bin/pip freeze
 
   - name: Python version
     destination: _commands/python-version
@@ -40,6 +40,10 @@ commands:
     destination: _commands/ip-route
     shell: ip route
 
+  - name: iptables
+    destination: _commands/iptables
+    shell: iptables -L -v -n
+
   - name: Network namespaces
     shell_emitter: |
       for item in `find /var/run/netns -type f | sed 's/.*\///'`
@@ -50,25 +54,29 @@ commands:
         shell: ip netns exec $item ip link
 
       - name: Network addresses (namespace $item)
-        destination: _commands/netns-$item/ip-link
+        destination: _commands/netns-$item/ip-addr
         shell: ip netns exec $item ip addr
 
       - name: Network routes (namespace $item)
-        destination: _commands/netns-$item/ip-link
+        destination: _commands/netns-$item/ip-route
         shell: ip netns exec $item ip route
+
+      - name: iptables (namespace $item)
+        destination: _commands/netns-$item/iptables
+        shell: ip netns exec $item iptables -L -v -n
       "
       done
 
   - name: vxlan networks
     shell_emitter: |
-      for item in `ip link | egrep ": vxlan-[0-9]" | cut -f 2 -d ":" | sed 's/ //'`
+      for item in `ip link | grep ": vxlan-" | cut -f 2 -d ":" | sed 's/ //'`
       do
         echo "commands:
       - name: vxlan iterface (vxlan $item)
         destination: _commands/$item/ip-link
         shell: ip -d link show $item
       - name: vxlan forwarding (vxlan $item)
-        destination: _commands/$item/brdge-fdb-show
+        destination: _commands/$item/bridge-fdb-show
         shell: bridge fdb show dev $item
       - name: vxlan bridge (vxlan $item)
         destination: _commands/$item/brctl-show

@@ -112,7 +112,7 @@ class CommandJob(Job):
 
 
 class CommandEmitterJob(Job):
-    # {"type": "commandEmitter", "source": "...thing which outputs commands..."}
+    # {"type": "shell_emitter", "source": "...thing which outputs commands..."}
     def __init__(self, definition):
         super(CommandEmitterJob, self).__init__(definition)
 
@@ -122,12 +122,12 @@ class CommandEmitterJob(Job):
     def execute(self):
         stdout, _ = processutils.execute(
             self.definition.get('shell_emitter'), shell=True)
-        self.commands = stdout.rstrip().split('\n')
+        self.commands = stdout.rstrip()
 
     def items(self):
-        for cmd in self.commands:
-            cmd = cmd.rstrip()
-            if cmd:
+        if self.commands:
+            parsed_commands = yaml.load(self.commands, Loader=yaml.SafeLoader)
+            for cmd in parsed_commands.get('commands'):
                 yield(cmd)
 
 
