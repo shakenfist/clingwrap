@@ -140,6 +140,7 @@ class CommandEmitterJob(Job):
                 % (self.definition.get('shell'), stdout.rstrip(), stderr.rstrip(),
                    e))
             self.destination = '_errors/%05d' % jobid
+            self.commands = None
 
     def items(self):
         if self.commands:
