@@ -14,7 +14,7 @@ commands:
 
   - name: Installed system pip packages and versions
     destination: _commands/pip
-    shell: pip freeze
+    shell: pip3 freeze
 
   - name: Installed Shaken Fist pip packages and versions
     destination: _commands/pip-sf
