@@ -104,6 +104,9 @@ class CommandJob(Job):
         return 'shell'
 
     def execute(self):
+        stdout = None
+        stderr = None
+
         try:
             stdout, stderr = processutils.execute(
                 self.definition.get('shell'), shell=True)
@@ -128,6 +131,9 @@ class CommandEmitterJob(Job):
         return 'shell_emitter'
 
     def execute(self):
+        stdout = None
+        stderr = None
+
         try:
             stdout, stderr = processutils.execute(
                 self.definition.get('shell'), shell=True)
@@ -140,7 +146,7 @@ class CommandEmitterJob(Job):
                 % (self.definition.get('shell'), stdout.rstrip(), stderr.rstrip(),
                    e))
             self.destination = '_errors/%05d' % jobid
-            self.commands = None
+            self.commands = []
 
     def items(self):
         if self.commands:
