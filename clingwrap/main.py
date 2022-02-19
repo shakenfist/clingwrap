@@ -1,8 +1,8 @@
 import click
 import io
-import json
 import logging
 import os
+import random
 import re
 import sys
 import yaml
@@ -104,25 +104,42 @@ class CommandJob(Job):
         return 'shell'
 
     def execute(self):
-        stdout, stderr = processutils.execute(
-            self.definition.get('shell'), shell=True)
-        self.read_flo = io.StringIO(
-            '# %s\n\n----- stdout -----\n%s\n\n----- stderr -----\n%s'
-            % (self.definition.get('shell'), stdout.rstrip(), stderr.rstrip()))
+        try:
+            stdout, stderr = processutils.execute(
+                self.definition.get('shell'), shell=True)
+            self.read_flo = io.StringIO(
+                '# %s\n\n----- stdout -----\n%s\n\n----- stderr -----\n%s'
+                % (self.definition.get('shell'), stdout.rstrip(), stderr.rstrip()))
+        except Exception as e:
+            self.read_flo = io.StringIO(
+                '# %s\n\n----- stdout -----\n%s\n\n----- stderr -----\n%s'
+                '\n\n----- exception -----\n%s'
+                % (self.definition.get('shell'), stdout.rstrip(), stderr.rstrip(),
+                   e))
 
 
 class CommandEmitterJob(Job):
     # {"type": "shell_emitter", "source": "...thing which outputs commands..."}
     def __init__(self, definition):
         super(CommandEmitterJob, self).__init__(definition)
+        self.commands = None
 
     def verb(self):
         return 'shell_emitter'
 
     def execute(self):
-        stdout, _ = processutils.execute(
-            self.definition.get('shell_emitter'), shell=True)
-        self.commands = stdout.rstrip()
+        try:
+            stdout, stderr = processutils.execute(
+                self.definition.get('shell'), shell=True)
+            self.commands = stdout.rstrip()
+        except Exception as e:
+            jobid = random.randint()
+            self.read_flo = io.StringIO(
+                '# %s\n\n----- stdout -----\n%s\n\n----- stderr -----\n%s'
+                '\n\n----- exception -----\n%s'
+                % (self.definition.get('shell'), stdout.rstrip(), stderr.rstrip(),
+                   e))
+            self.destination = '_errors/%s' % jobid
 
     def items(self):
         if self.commands:
