@@ -104,8 +104,8 @@ class CommandJob(Job):
         return 'shell'
 
     def execute(self):
-        stdout = None
-        stderr = None
+        stdout = ''
+        stderr = ''
 
         try:
             stdout, stderr = processutils.execute(
@@ -131,8 +131,8 @@ class CommandEmitterJob(Job):
         return 'shell_emitter'
 
     def execute(self):
-        stdout = None
-        stderr = None
+        stdout = ''
+        stderr = ''
 
         try:
             stdout, stderr = processutils.execute(
