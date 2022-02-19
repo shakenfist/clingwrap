@@ -133,13 +133,13 @@ class CommandEmitterJob(Job):
                 self.definition.get('shell'), shell=True)
             self.commands = stdout.rstrip()
         except Exception as e:
-            jobid = random.randint()
+            jobid = random.randint(1, 32000)
             self.read_flo = io.StringIO(
                 '# %s\n\n----- stdout -----\n%s\n\n----- stderr -----\n%s'
                 '\n\n----- exception -----\n%s'
                 % (self.definition.get('shell'), stdout.rstrip(), stderr.rstrip(),
                    e))
-            self.destination = '_errors/%s' % jobid
+            self.destination = '_errors/%05d' % jobid
 
     def items(self):
         if self.commands:
