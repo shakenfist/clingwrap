@@ -96,9 +96,9 @@ commands:
     destination: var/log/apache2
     directory: /var/log/apache2
 
-  - name: Shaken Fist instances
-    destination: /srv/shakenfist/instances
-    directory: /srv/shakenfist/instances
+  - name: Shaken Fist data
+    destination: srv/shakenfist
+    directory: /srv/shakenfist
     exclude: "([hsv]d[ac-z]|nvme[0-9])"
 
   - name: Running processes
