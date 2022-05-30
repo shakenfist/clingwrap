@@ -20,6 +20,20 @@ commands:
     destination: _commands/pip-sf
     shell: /srv/shakenfist/venv/bin/pip freeze
 
+  - name: Locked version of requirements based on what was used in this CI run
+    destination: _commands/pip-requirements-locked
+    shell: |
+      /srv/shakenfist/venv/bin/pip install hashin
+      touch /tmp/requirements-locked.txt
+      for dependancy in `/srv/shakenfist/venv/bin/pip freeze --local | egrep -v "(shakenfist|pkg_resources)"`
+      do
+          /srv/shakenfist/venv/bin/hashin $dependancy --requirements /tmp/requirements-locked.txt
+      done
+
+  - name: Capture requirements-locked.txt
+    destination: _commands/pip-requirements-locked.txt
+    file: /tmp/requirements-locked.txt
+
   - name: Python version
     destination: _commands/python-version
     shell: python3 --version
