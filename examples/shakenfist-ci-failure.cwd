@@ -25,7 +25,7 @@ commands:
     shell: |
       /srv/shakenfist/venv/bin/pip install hashin
       touch /tmp/requirements-locked.txt
-      for dependancy in `/srv/shakenfist/venv/bin/pip freeze --local | egrep -v "(shakenfist|pkg_resources)"`
+      for dependancy in `/srv/shakenfist/venv/bin/pip freeze --local | egrep -v "(shakenfist|pkg[_\-]resources)"`
       do
           /srv/shakenfist/venv/bin/hashin $dependancy --requirements /tmp/requirements-locked.txt
       done
