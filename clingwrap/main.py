@@ -58,6 +58,8 @@ class FileJob(Job):
     def execute(self):
         if os.path.exists(self.definition.get('file')):
             self.read_flo = open(self.definition.get('file'), 'rb')
+        else:
+            self.read_flo = io.StringIO('--- file was absent ---')
 
 
 class DirectoryJob(Job):

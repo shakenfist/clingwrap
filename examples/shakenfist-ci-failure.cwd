@@ -27,6 +27,7 @@ commands:
       touch /tmp/requirements-locked.txt
       for dependancy in `/srv/shakenfist/venv/bin/pip freeze --local | egrep -v "(shakenfist|pkg[_\-]resources)"`
       do
+          echo "Locking $dependancy"
           /srv/shakenfist/venv/bin/hashin $dependancy --requirements /tmp/requirements-locked.txt
       done
 
