@@ -25,15 +25,19 @@ commands:
     shell: |
       /srv/shakenfist/venv/bin/pip install hashin
       touch /tmp/requirements-locked.txt
+
+      echo
       for dependancy in `/srv/shakenfist/venv/bin/pip freeze --local | egrep -v "(shakenfist|pkg[_\-]resources)"`
       do
           echo "Locking $dependancy"
           /srv/shakenfist/venv/bin/hashin $dependancy --requirements /tmp/requirements-locked.txt
       done
 
-  - name: Capture requirements-locked.txt
-    destination: _commands/pip-requirements-locked.txt
-    file: /tmp/requirements-locked.txt
+      echo
+      cat /tmp/requirements-locked.txt
+
+      echo
+      echo "EOF"
 
   - name: Python version
     destination: _commands/python-version
