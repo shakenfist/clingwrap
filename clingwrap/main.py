@@ -4,16 +4,15 @@ import logging
 import os
 import random
 import re
+from shakenfist_utilities import logs
 import sys
 import yaml
 import zipfile
 
 from oslo_concurrency import processutils
 
-logging.basicConfig(level=logging.INFO)
 
-LOG = logging.getLogger(__name__)
-LOG.setLevel(logging.INFO)
+LOG = logs.setup_console(__name__)
 
 # Read simple command blocks from stdin and execute them. Command blocks are JSON with
 # one command per line and look like this:
