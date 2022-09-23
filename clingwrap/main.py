@@ -189,12 +189,10 @@ def gather(ctx, target=None, output=None):
 
     # Parse commands
     parsed_commands = yaml.load(cmds, Loader=yaml.SafeLoader)
-    print(parsed_commands)
 
     # Read and execute commands
     queued = parsed_commands.get('commands')
     while queued:
-        print('Queued commands: %d' % len(queued))
         c = queued.pop()
 
         job = None
