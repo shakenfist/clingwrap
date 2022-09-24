@@ -118,12 +118,12 @@ commands:
   - name: Shaken Fist instances
     destination: srv/shakenfist/instances
     directory: /srv/shakenfist/instances
-    exclude: "([hsv]d[ac-z]|nvme[0-9]|sc-*)"
+    exclude: "([hsv]d[ac-z]|nvme[0-9]|sc-.*)"
 
   - name: Shaken Fist events
     destination: srv/shakenfist/events
     directory: /srv/shakenfist/events
-    exclude: "*.lock"
+    exclude: ".*\.lock"
 
   - name: Running processes
     destination: _commands/ps-aux
