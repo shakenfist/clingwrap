@@ -123,7 +123,7 @@ commands:
   - name: Shaken Fist events
     destination: srv/shakenfist/events
     directory: /srv/shakenfist/events
-    exclude: ".*\.lock"
+    exclude: ".*\\.lock"
 
   - name: Running processes
     destination: _commands/ps-aux
