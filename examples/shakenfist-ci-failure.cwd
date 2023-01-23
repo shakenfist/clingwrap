@@ -43,6 +43,14 @@ commands:
     destination: _commands/python-version
     shell: python3 --version
 
+  - name: systemd status
+    destination: _commands/systemctl-status
+    shell: systemctl-status
+
+  - name: libvirtd systemd unit logs
+    destination: _commands/journalctl-libvirtd
+    shell: journalctl -u libvirtd
+
   - name: libvirt VMs
     destination: _commands/virsh-list-all
     shell: virsh list --all
