@@ -45,7 +45,7 @@ commands:
 
   - name: systemd status
     destination: _commands/systemctl-status
-    shell: systemctl-status
+    shell: systemctl status
 
   - name: libvirtd systemd unit logs
     destination: _commands/journalctl-libvirtd
