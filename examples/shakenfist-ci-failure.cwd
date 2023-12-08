@@ -8,6 +8,14 @@ commands:
     destination: etc/os-release
     file: /etc/os-release
 
+  - name: apparmor configuration file
+    destination: etc/apparmor
+    file: etc/apparmor
+
+  - name: apparmor configuration directory
+    destination: etc/apparmor.d
+    directory: /etc/apparmor.d
+
   - name: Installed system OS packages and versions
     destination: _commands/dpkg
     shell: dpkg -l
