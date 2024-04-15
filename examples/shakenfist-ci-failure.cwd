@@ -16,6 +16,14 @@ commands:
     destination: etc/apparmor.d
     directory: /etc/apparmor.d
 
+  - name: apache2 configuration
+    destination: etc/apache2
+    directory: /etc/apache2
+
+  - name: Shaken Fist configuration
+    destination: etc/sf
+    directory: /etc/sf
+
   - name: Installed system OS packages and versions
     destination: _commands/dpkg
     shell: dpkg -l
