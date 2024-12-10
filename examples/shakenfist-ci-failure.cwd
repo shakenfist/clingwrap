@@ -63,9 +63,17 @@ commands:
     destination: _commands/systemctl-status
     shell: systemctl status
 
+  - name: etcd systemd unit logs
+    destination: _commands/journalctl-etcd
+    shell: journalctl -u etcd
+
   - name: libvirtd systemd unit logs
     destination: _commands/journalctl-libvirtd
     shell: journalctl -u libvirtd
+
+  - name: SF systemd target logs
+    destination: _commands/journalctl-sf-target
+    shell: journalctl -u sf.target
 
   - name: libvirt VMs
     destination: _commands/virsh-list-all
@@ -130,6 +138,10 @@ commands:
   - name: syslog
     destination: var/log/syslog
     file: /var/log/syslog
+
+  - name: syslog.1
+    destination: var/log/syslog.1
+    file: /var/log/syslog.1
 
   - name: libvirt logs
     destination: var/log/libvirt
