@@ -43,10 +43,10 @@ commands:
       touch /tmp/requirements-locked.txt
 
       echo
-      for dependancy in `/srv/shakenfist/venv/bin/pip freeze --local | egrep -v "(shakenfist|pkg[_\-]resources)"`
+      for dependency in `/srv/shakenfist/venv/bin/pip freeze --local | egrep -v "(shakenfist|pkg[_\-]resources)"`
       do
-          echo "Locking $dependancy"
-          /srv/shakenfist/venv/bin/hashin $dependancy --requirements /tmp/requirements-locked.txt
+          echo "Locking $dependency"
+          /srv/shakenfist/venv/bin/hashin $dependency --requirements /tmp/requirements-locked.txt
       done
 
       echo
@@ -75,6 +75,17 @@ commands:
     destination: _commands/journalctl-sf-target
     shell: journalctl -u sf.target
 
+  - name: SF systemd units
+    shell_emitter: |
+      for item in /etc/systemd/system/sf*.service
+      do
+        echo "commands:
+      - name: Record systemd unit (${item})
+        destination: etc/systemd/system/${item}
+        file: /etc/systemd/system/${item}
+      "
+      done
+
   - name: libvirt VMs
     destination: _commands/virsh-list-all
     shell: virsh list --all
@@ -100,21 +111,21 @@ commands:
       for item in `find /var/run/netns -type f | sed 's/.*\///'`
       do
         echo "commands:
-      - name: Network interfaces (namespace $item)
-        destination: _commands/netns-$item/ip-link
-        shell: ip netns exec $item ip link
+      - name: Network interfaces (namespace ${item})
+        destination: _commands/netns-${item}/ip-link
+        shell: ip netns exec ${item} ip link
 
-      - name: Network addresses (namespace $item)
-        destination: _commands/netns-$item/ip-addr
-        shell: ip netns exec $item ip addr
+      - name: Network addresses (namespace ${item})
+        destination: _commands/netns-${item}/ip-addr
+        shell: ip netns exec ${item} ip addr
 
-      - name: Network routes (namespace $item)
-        destination: _commands/netns-$item/ip-route
-        shell: ip netns exec $item ip route
+      - name: Network routes (namespace ${item})
+        destination: _commands/netns-${item}/ip-route
+        shell: ip netns exec ${item} ip route
 
-      - name: iptables (namespace $item)
-        destination: _commands/netns-$item/iptables
-        shell: ip netns exec $item iptables -L -v -n
+      - name: iptables (namespace ${item})
+        destination: _commands/netns-${item}/iptables
+        shell: ip netns exec ${item} iptables -L -v -n
       "
       done
 
@@ -123,15 +134,15 @@ commands:
       for item in `ip link | grep ": vxlan-" | cut -f 2 -d ":" | sed 's/ //'`
       do
         echo "commands:
-      - name: vxlan iterface (vxlan $item)
-        destination: _commands/$item/ip-link
-        shell: ip -d link show $item
-      - name: vxlan forwarding (vxlan $item)
-        destination: _commands/$item/bridge-fdb-show
-        shell: bridge fdb show dev $item
-      - name: vxlan bridge (vxlan $item)
-        destination: _commands/$item/brctl-show
-        shell: brctl show br-$item
+      - name: vxlan iterface (vxlan ${item})
+        destination: _commands/${item}/ip-link
+        shell: ip -d link show ${item}
+      - name: vxlan forwarding (vxlan ${item})
+        destination: _commands/${item}/bridge-fdb-show
+        shell: bridge fdb show dev ${item}
+      - name: vxlan bridge (vxlan ${item})
+        destination: _commands/${item}/brctl-show
+        shell: brctl show br-${item}
       "
       done
 
