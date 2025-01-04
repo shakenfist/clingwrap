@@ -77,12 +77,23 @@ commands:
 
   - name: SF systemd units
     shell_emitter: |
-      for item in /etc/systemd/system/sf*.service
+      for item in `find /etc/systemd/system -type f -name "sf-*" | sed 's/.*\///'`
       do
         echo "commands:
       - name: Record systemd unit (${item})
         destination: etc/systemd/system/${item}
         file: /etc/systemd/system/${item}
+      "
+      done
+
+  - name: SF systemd unit pid and abort files
+    shell_emitter: |
+      for item in `find /run/sf -type f | sed 's/.*\///'`
+      do
+        echo "commands:
+      - name: Record contents of file (${item})
+        destination: run/sf/${item}
+        file: /run/sf/${item}
       "
       done
 
