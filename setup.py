@@ -29,7 +29,8 @@ setuptools.setup(
     data_files=[
         (
             'share/clingwrap', [
-                'examples/shakenfist-ci-failure.cwd'
+                'examples/shakenfist-ci-failure.cwd',
+                'examples/openstack-kolla-ansible.cwd'
             ]
         )
     ],
