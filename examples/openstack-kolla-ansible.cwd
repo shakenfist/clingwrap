@@ -1,0 +1,57 @@
+---
+commands:
+  - name: Kernel version and architecture
+    destination: _commands/uname
+    shell: uname -a
+
+  - name: Descriptive information about the OS
+    destination: etc/os-release
+    file: /etc/os-release
+
+  - name: apparmor configuration file
+    destination: etc/apparmor
+    file: etc/apparmor
+
+  - name: apparmor configuration directory
+    destination: etc/apparmor.d
+    directory: /etc/apparmor.d
+
+  - name: Kolla-Ansible configuration
+    destination: etc/kolla
+    directory: /etc/kolla
+
+  - name: Installed system OS packages and versions (Debian derived)
+    destination: _commands/dpkg
+    shell: dpkg -l
+
+  - name: Installed system OS packages and versions (RedHat derived)
+    destination: _commands/rpm
+    shell: rpm -qa
+
+  - name: Installed system pip packages and versions
+    destination: _commands/pip
+    shell: pip3 freeze
+
+  - name: Python version
+    destination: _commands/python-version
+    shell: python3 --version
+
+  - name: systemd status
+    destination: _commands/systemctl-status
+    shell: systemctl status
+
+  - name: syslog
+    destination: var/log/syslog
+    file: /var/log/syslog
+
+  - name: syslog.1
+    destination: var/log/syslog.1
+    file: /var/log/syslog.1
+
+  - name: Kolla-Ansible logs
+    destination: var/log/kolla
+    directory: /var/log/kolla
+
+  - name: Running processes
+    destination: _commands/ps-aux
+    shell: ps -aux
