@@ -175,7 +175,7 @@ commands:
 
   - name: privexec events database
     destination: var/run/sf-localevents
-    directory: /var/run/sf-localevents
+    file: /var/run/sf-localevents
 
   - name: Shaken Fist instances
     destination: srv/shakenfist/instances
