@@ -55,3 +55,15 @@ commands:
   - name: Running processes
     destination: _commands/ps-aux
     shell: ps -aux
+
+  - name: Running containers
+    destination: _commands/docker-ps
+    shell: docker ps
+
+  - name: Inspect kerbside container
+    destination: _commands/docker-inspect-kerbside
+    shell: docker inspect kerbside
+
+  - name: Inspect kerbside-proxy container
+    destination: _commands/docker-inspect-kerbside-proxy
+    shell: docker inspect kerbside-proxy
