@@ -62,7 +62,7 @@ commands:
 
   - name: Container dumps
     shell_emitter: |
-      for item in $(docker ps --format '{{ .Names }}')
+      for item in `docker ps --format '{{ .Names }}'`
       do
         echo "commands:
       - name: Inspect ${item} container
