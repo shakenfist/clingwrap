@@ -57,12 +57,16 @@ commands:
     shell: ps -aux
 
   - name: Running containers
-    destination: _commands/docker-ps
-    shell: docker ps
+    destination: _commands/docker-ps-all
+    shell: docker ps -all
+
+  - name: Running containers
+    destination: _commands/docker-ps-names
+    shell: docker ps -all --format '{{ .Names }}'
 
   - name: Container dumps
     shell_emitter: |
-      for item in `docker ps --format '{{ .Names }}'`
+      for item in `docker ps --all --format '{{ .Names }}'`
       do
         echo "commands:
       - name: Inspect ${item} container

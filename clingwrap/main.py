@@ -136,7 +136,7 @@ class CommandEmitterJob(Job):
 
         try:
             stdout, stderr = processutils.execute(
-                self.definition.get('shell'), shell=True)
+                self.definition.get('shell_emitter'), shell=True)
             self.commands = stdout.rstrip()
         except Exception as e:
             jobid = random.randint(1, 32000)
