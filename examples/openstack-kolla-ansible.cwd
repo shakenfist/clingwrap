@@ -60,10 +60,17 @@ commands:
     destination: _commands/docker-ps
     shell: docker ps
 
-  - name: Inspect kerbside container
-    destination: _commands/docker-inspect-kerbside
-    shell: docker inspect kerbside
+  - name: Container dumps
+    shell_emitter: |
+      for item in $(docker ps --format '{{ .Names }}')
+      do
+        echo "commands:
+      - name: Inspect ${item} container
+        destination: _commands/docker-inspect-${item}
+        shell: docker inspect ${item}
 
-  - name: Inspect kerbside-proxy container
-    destination: _commands/docker-inspect-kerbside-proxy
-    shell: docker inspect kerbside-proxy
+      - name: Docker logs for ${item} container
+        destination: _commands/docker-logs-${item}
+        shell: docker logs ${item}
+      "
+      done
