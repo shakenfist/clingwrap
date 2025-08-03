@@ -55,10 +55,11 @@ class FileJob(Job):
         return 'file'
 
     def execute(self):
-        if os.path.exists(self.definition.get('file')):
-            self.read_flo = open(self.definition.get('file'), 'rb')
+        source = self.definition.get('source')
+        if os.path.exists(source):
+            self.read_flo = open(source, 'rb')
         else:
-            self.read_flo = io.StringIO('--- file was absent ---')
+            self.read_flo = io.StringIO('--- file %s was absent ---' % source)
 
 
 class DirectoryJob(Job):
@@ -145,7 +146,7 @@ class CommandEmitterJob(Job):
                 '\n\n----- exception -----\n%s'
                 % (self.definition, stdout.rstrip(), stderr.rstrip(), e))
             self.destination = '_errors/%05d' % jobid
-            self.commands = []
+            self.commands = ''
 
     def items(self):
         if self.commands:
