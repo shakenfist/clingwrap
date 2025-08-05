@@ -14,16 +14,6 @@ from oslo_concurrency import processutils
 
 LOG = logs.setup_console(__name__)
 
-# Read simple command blocks from stdin and execute them. Command blocks are JSON with
-# one command per line and look like this:
-#
-# {"type": "file", "source": "/var/log/syslog"}
-#
-# Possible command fields:
-#     'type': one of 'command', 'file', or 'directory'
-#     'source': either the soure filename or command to execute
-#     'destination': where to place the file in the bucket, optional for files
-
 
 class UnsupportedJobException(Exception):
     pass
@@ -47,7 +37,6 @@ class Job(object):
 
 
 class FileJob(Job):
-    # {"type": "file", "source": "/var/log/syslog"}
     def __init__(self, definition):
         super(FileJob, self).__init__(definition)
 
@@ -62,7 +51,6 @@ class FileJob(Job):
 
 
 class DirectoryJob(Job):
-    # {"type": "directory", "source": "/var/log/syslog"}, "exclude": "hd[ac-z]"
     def __init__(self, definition):
         super(DirectoryJob, self).__init__(definition)
         if 'exclude' in definition:
@@ -92,12 +80,11 @@ class DirectoryJob(Job):
                 yield {
                     'name': 'Emitted file archival (%s)' % p,
                     'file': p,
-                    'destination': p
+                    'destination': p.lstrip('/')
                 }
 
 
 class CommandJob(Job):
-    # {"type": "command", "source": "pip3 list", "destination": "commands/pip3-list"}
     def __init__(self, definition):
         super(CommandJob, self).__init__(definition)
 
@@ -122,7 +109,6 @@ class CommandJob(Job):
 
 
 class CommandEmitterJob(Job):
-    # {"type": "shell_emitter", "source": "...thing which outputs commands..."}
     def __init__(self, definition):
         super(CommandEmitterJob, self).__init__(definition)
         self.commands = None
