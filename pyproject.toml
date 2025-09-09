@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "setuptools>=61.0",
-    "setuptools_scm[toml]>=6.2",
+    "setuptools_scm[simple]>=6.2",
     "wheel",
     "build",
     "twine"
@@ -36,3 +36,4 @@ clingwrap = [
 
 [tool.setuptools_scm]
 git_describe_command = "git describe --dirty --tags --match v* --first-parent"
+write_to = "clingwrap/_version.py"

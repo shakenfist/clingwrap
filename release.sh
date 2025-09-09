@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # Updated to be pyproject.toml and the new python build system compatible.
-pip install -U build
+pip install -U build twine pkginfo
 
 echo "--- Determine version number ---"
 PREVIOUS=`git tag | egrep "^v" | sort -n | tail -1 | sed 's/^v//'`
