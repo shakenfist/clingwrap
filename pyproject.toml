@@ -1,0 +1,35 @@
+[build-system]
+requires = [
+    "setuptools>=61.0",
+    "setuptools_scm[toml]>=6.2",
+    "wheel",
+    "build",
+    "twine"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clingwrap"
+dynamic = ["version"]
+
+description = "Build bundles of debugging information for system crashes"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "oslo.concurrency",     # apache2
+    "click>=7.1.1",         # bsd
+    "pyyaml",               # mit
+    "shakenfist-utilities", # apache2
+]
+
+[project.urls]
+"Homepage" = "https://shakenfist.com"
+"Bug Tracker" = "https://github.com/shakenfist/clingwrap/issues"
+
+[project.scripts]
+clingwrap = "clingwrap.main:cli"
+
+[tool.setuptools.package-data]
+clingwrap = [
+    "examples/*.cwd"
+]

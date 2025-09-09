@@ -1,4 +1,0 @@
-oslo.concurrency     # apache2
-click>=7.1.1         # bsd
-pyyaml               # mit
-shakenfist-utilities # apache2
