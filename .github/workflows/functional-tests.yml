@@ -1,0 +1,42 @@
+name: Functional tests
+
+# NOTE(mikal): git repos are checked out to /srv/github/_work/{repo}/{repo}
+# which is available as GITHUB_WORKSPACE. You can find other environment
+# variables at:
+# https://docs.github.com/en/actions/learn-github-actions/environment-variables
+#
+# The can_enqueue / can_merge scheme is as described at:
+# https://boinkor.net/2023/11/neat-github-actions-patterns-for-github-merge-queues/
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  # These sanity checks used to be three separate jobs, but are now combined
+  # to save a little time and reduce CI runner churn.
+  sanity_checks:
+    runs-on: [self-hosted, vm, debian-12]
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-lint
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout code with two commits
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lint with flake8
+        timeout-minutes: 5
+        run: |
+          /usr/bin/tox -eflake8
+
+      - name: Attempt to install requirements
+        timeout-minutes: 5
+        run: |
+          python3 -mvenv /tmp/venv
+          /tmp/venv/bin/pip3 install uv
+          /tmp/venv/bin/uv pip install -r pyproject.toml
