@@ -29,14 +29,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Upgrade base test tools
+        timeout-minutes: 5
+        run: |
+          python3 -mvenv /tmp/venv-test
+          . /tmp/venv-test/bin/activate
+          pip3 install uv
+          uv pip install tox tox-uv
+
       - name: Lint with flake8
         timeout-minutes: 5
         run: |
-          /usr/bin/tox -eflake8
+          . /tmp/venv-test/bin/activate
+          tox -eflake8
 
       - name: Attempt to install requirements
         timeout-minutes: 5
         run: |
-          python3 -mvenv /tmp/venv
-          /tmp/venv/bin/pip3 install uv
-          /tmp/venv/bin/uv pip install -r pyproject.toml
+          python3 -mvenv /tmp/venv-reqs
+          . /tmp/venv-reqs/bin/activate
+          pip3 install uv
+          uv pip install -r pyproject.toml
