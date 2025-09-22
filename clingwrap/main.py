@@ -1,15 +1,16 @@
 import click
+import importlib
 import io
 import logging
 import os
 import random
 import re
-from shakenfist_utilities import logs
 import sys
 import yaml
 import zipfile
 
 from oslo_concurrency import processutils
+from shakenfist_utilities import logs
 
 
 LOG = logs.setup_console(__name__)
@@ -138,7 +139,7 @@ class CommandEmitterJob(Job):
         if self.commands:
             parsed_commands = yaml.load(self.commands, Loader=yaml.SafeLoader)
             for cmd in parsed_commands.get('commands'):
-                yield(cmd)
+                yield cmd
 
 
 JOBS = [FileJob, DirectoryJob, CommandJob, CommandEmitterJob]
@@ -157,9 +158,6 @@ def cli(ctx, verbose=None):
 @click.option('--output', help='The path and file to write the output to')
 @click.pass_context
 def gather(ctx, target=None, output=None):
-    if not target:
-        print('Please specify a target to collect with --target.')
-        sys.exit(1)
     if not output:
         print('Please specify an output location with --output.')
         sys.exit(1)
@@ -169,9 +167,24 @@ def gather(ctx, target=None, output=None):
     # Collect our commands from the target file or stdin
     cmds = ''
     if target:
-        with open(target) as f:
-            cmds = f.read()
+        if os.path.exists(target):
+            # Target is a file path
+            with open(target) as f:
+                cmds = f.read()
+
+        elif target.find('/') != -1:
+            print('Target configuration names should contain paths')
+            sys.exit(1)
+
+        else:
+            # Target might also be the _name_ of a configuration we ship as an
+            # example.
+            with importlib.resources.path('clingwrap', f'{target}.cwd') as data_path:
+                with open(data_path) as f:
+                    cmds = f.read()
+
     else:
+        print('Reading command from stdin, send EOF to start processing')
         cmds = sys.stdin.read()
 
     # Parse commands
