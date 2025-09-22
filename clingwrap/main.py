@@ -139,7 +139,7 @@ class CommandEmitterJob(Job):
         if self.commands:
             parsed_commands = yaml.load(self.commands, Loader=yaml.SafeLoader)
             for cmd in parsed_commands.get('commands'):
-                yield(cmd)
+                yield cmd
 
 
 JOBS = [FileJob, DirectoryJob, CommandJob, CommandEmitterJob]
