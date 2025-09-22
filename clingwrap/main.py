@@ -179,7 +179,8 @@ def gather(ctx, target=None, output=None):
         else:
             # Target might also be the _name_ of a configuration we ship as an
             # example.
-            with importlib.resources.path('clingwrap', f'{target}.cwd') as data_path:
+            with importlib.resources.path(
+                    'clingwrap', f'examples/{target}.cwd') as data_path:
                 with open(data_path) as f:
                     cmds = f.read()
 
