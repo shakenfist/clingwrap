@@ -179,10 +179,7 @@ def gather(ctx, target=None, output=None):
         else:
             # Target might also be the _name_ of a configuration we ship as an
             # example.
-            with importlib.resources.path(
-                    'clingwrap', f'examples/{target}.cwd') as data_path:
-                with open(data_path) as f:
-                    cmds = f.read()
+            cmds = importlib.resources.read_text('clingwrap', 'examples', f'{target}.cwd')
 
     else:
         print('Reading command from stdin, send EOF to start processing')
