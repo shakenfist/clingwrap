@@ -1,159 +1,160 @@
 import click
+import datetime
 import importlib
-import io
-import logging
 import os
 import random
-import re
 import sys
+import tempfile
 import yaml
 import zipfile
 
 from oslo_concurrency import processutils
-from shakenfist_utilities import logs
 
 
-LOG = logs.setup_console(__name__)
+class Job:
+    def __init__(self, **kwargs):
+        self.id = random.randint(0, 100000)
+        self.name = kwargs['name']
+        self.type = kwargs['type']
+        self.destination = kwargs.get('destination')
+        self._log = kwargs['log']
+        self._zipped = kwargs['zipped']
 
+        self.log(f'Created job named "{self.name}" with destination {self.destination}')
 
-class UnsupportedJobException(Exception):
-    pass
+    def log(self, s):
+        log_string = f'{datetime.datetime.now()} [{self.type} job id {self.id:6d}] {s}\n'
 
-
-class Job(object):
-    def __init__(self, definition):
-        self.definition = definition
-        self.destination = self.definition.get('destination')
-        self.read_flo = None
-
-    def items(self):
-        return []
+        sys.stdout.write(log_string)
+        sys.stdout.flush()
+        self._log.write(log_string)
+        self._log.flush()
 
     def execute(self):
-        pass
-
-    def cleanup(self):
-        if self.read_flo:
-            self.read_flo.close()
+        self.log('Executing')
+        d = self._execute_inner()
+        self._zipped.writestr(self.destination, d)
+        self.log(f'Wrote {len(d)} bytes to {self.destination}')
+        return []
 
 
 class FileJob(Job):
-    def __init__(self, definition):
-        super(FileJob, self).__init__(definition)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.source = kwargs['source']
+        self.log(f'Job has source {self.source}')
 
-    def verb(self):
-        return 'file'
-
-    def execute(self):
-        source = self.definition.get('source')
-        if not source:
-            return
-
-        if os.path.exists(source):
-            self.read_flo = open(source, 'rb')
+    def _execute_inner(self):
+        if os.path.exists(self.source):
+            self.log(f'Source {self.source} exists')
+            try:
+                with open(self.source) as f:
+                    return f.read()
+            except Exception as e:
+                self.log(f'Exception while reading {self.source}: {e}')
+                return f'--- file {self.source} exception: {e} ---'
         else:
-            self.read_flo = io.StringIO('--- file %s was absent ---' % source)
+            self.log(f'Source {self.source} does not exist')
+            return f'--- file {self.source} was absent ---'
 
 
 class DirectoryJob(Job):
-    def __init__(self, definition):
-        super(DirectoryJob, self).__init__(definition)
-        if 'exclude' in definition:
-            self.exclude = re.compile(definition['exclude'])
-        else:
-            self.exclude = None
-
-    def verb(self):
-        return 'directory'
-
-    def items(self, path=None):
-        if not path:
-            path = self.definition.get('directory')
-
-        if not os.path.exists(path):
-            return
-
-        for ent in os.listdir(path):
-            p = os.path.join(path, ent)
-            if os.path.isdir(p):
-                for result in self.items(p):
-                    yield result
-            else:
-                if self.exclude:
-                    if self.exclude.match(ent):
-                        continue
-                yield {
-                    'name': 'Emitted file archival (%s)' % p,
-                    'file': p,
-                    'destination': p.lstrip('/')
-                }
-
-
-class CommandJob(Job):
-    def __init__(self, definition):
-        super(CommandJob, self).__init__(definition)
-
-    def verb(self):
-        return 'shell'
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.source = kwargs['source']
+        self.log(f'Job has source {self.source}')
 
     def execute(self):
+        self.log('Executing')
+        jobname = f'Generated FileJob for directory {self.source}'
+        for root, dirs, files in os.walk(self.source):
+            for dir in dirs:
+                for file in files:
+                    j = FileJob(
+                        type='file',
+                        name=jobname,
+                        source=os.path.join(root, dir, file),
+                        destination=os.path.join(self.destination, dir, file)
+                    )
+                    self.log(f'Yielding job {j.id}')
+                    yield j
+
+
+class ShellJob(Job):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.command = kwargs['command']
+        self.log(f'Job has command {self.command}')
+
+    def _execute_inner(self):
         stdout = ''
         stderr = ''
 
         try:
-            stdout, stderr = processutils.execute(
-                self.definition.get('shell'), shell=True)
-            self.read_flo = io.StringIO(
-                '# %s\n\n----- stdout -----\n%s\n\n----- stderr -----\n%s'
-                % (self.definition.get('shell'), stdout.rstrip(), stderr.rstrip()))
+            stdout, stderr = processutils.execute(self.command, shell=True)
+            return (
+                f'# {self.command}\n\n'
+                f'----- stdout -----\n{stdout.rstrip()}\n\n'
+                f'----- stderr -----\n{stderr.rstrip()}'
+            )
+
         except Exception as e:
-            self.read_flo = io.StringIO(
-                '# %s\n\n----- stdout -----\n%s\n\n----- stderr -----\n%s'
-                '\n\n----- exception -----\n%s'
-                % (self.definition, stdout.rstrip(), stderr.rstrip(), e))
+            self.log(f'Received exception while running shell command: {e}')
+            return (
+                f'# {self.command}\n\n'
+                f'----- stdout -----\n\n'
+                f'----- stderr -----\n\n'
+                f'----- exception -----\n{e}\n'
+            )
 
 
-class CommandEmitterJob(Job):
-    def __init__(self, definition):
-        super(CommandEmitterJob, self).__init__(definition)
-        self.commands = None
-
-    def verb(self):
-        return 'shell_emitter'
+class ShellEmitterJob(Job):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.command = kwargs['command']
+        self.log(f'Job has command {self.command}')
 
     def execute(self):
-        stdout = ''
-        stderr = ''
-
+        self.log('Executing')
         try:
-            stdout, stderr = processutils.execute(
-                self.definition.get('shell_emitter'), shell=True)
-            self.commands = stdout.rstrip()
+            stdout, stderr = processutils.execute(self.command, shell=True)
+            if stdout:
+                self.log(f'Received stdout while generating jobs: {stdout}')
+            if stderr:
+                self.log(f'Received stderr while generating jobs: {stderr}')
+
+            parsed = yaml.load(stdout, Loader=yaml.SafeLoader)
+            self.log(f'YAML parsed ok and produced {len(parsed)} commands')
+            for y in parsed:
+                self.log(f'Yielding job {y}')
+                yield y
+
         except Exception as e:
-            jobid = random.randint(1, 32000)
-            self.read_flo = io.StringIO(
-                '# %s\n\n----- stdout -----\n%s\n\n----- stderr -----\n%s'
-                '\n\n----- exception -----\n%s'
-                % (self.definition, stdout.rstrip(), stderr.rstrip(), e))
-            self.destination = '_errors/%05d' % jobid
-            self.commands = ''
-
-    def items(self):
-        if self.commands:
-            parsed_commands = yaml.load(self.commands, Loader=yaml.SafeLoader)
-            for cmd in parsed_commands.get('commands'):
-                yield cmd
+            self.log(f'Received exception while running shell_emmiter command: {e}')
+            return (
+                f'# {self.command}\n\n'
+                f'----- stdout -----\n\n'
+                f'----- stderr -----\n\n'
+                f'----- exception -----\n{e}\n'
+            )
 
 
-JOBS = [FileJob, DirectoryJob, CommandJob, CommandEmitterJob]
+JOB_MAP = {
+    'directory': DirectoryJob,
+    'file': FileJob,
+    'shell': ShellJob,
+    'shell_emitter': ShellEmitterJob,
+}
+
+
+def rehydrate_job(**kwargs):
+    return JOB_MAP.get(kwargs['type']['class'])(**kwargs)
 
 
 @click.group()
-@click.option('--verbose/--no-verbose', default=False)
 @click.pass_context
-def cli(ctx, verbose=None):
-    if verbose:
-        LOG.setLevel(logging.DEBUG)
+def cli(ctx):
+    ...
 
 
 @click.command()
@@ -164,8 +165,6 @@ def gather(ctx, target=None, output=None):
     if not output:
         print('Please specify an output location with --output.')
         sys.exit(1)
-
-    zipped = zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED)
 
     # Collect our commands from the target file or stdin
     cmds = ''
@@ -196,33 +195,44 @@ def gather(ctx, target=None, output=None):
         cmds = sys.stdin.read()
 
     # Parse commands
-    parsed_commands = yaml.load(cmds, Loader=yaml.SafeLoader)
+    queued = yaml.load(cmds, Loader=yaml.SafeLoader)
 
     # Read and execute commands
-    queued = parsed_commands.get('commands')
-    while queued:
-        c = queued.pop()
+    with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zipped:
+        with tempfile.TemporaryDirectory(dir='/tmp', prefix='clingwrap') as td:
+            log_file = os.path.join(td, 'clingwrap.log')
 
-        job = None
-        for j in JOBS:
-            candidate_job = j(c)
-            if candidate_job.verb() in c:
-                job = candidate_job
-                break
-            candidate_job.cleanup()
+            with open(log_file, 'w') as log:
+                def log_write(job_type, job_id, s):
+                    log_string = f'{datetime.datetime.now()} ['
+                    if job_type:
+                        log_string += f'{job_type} job id {job_id:6d}'
+                    log_string += f'] {s}\n'
 
-        if not job:
-            raise UnsupportedJobException(c)
+                    sys.stdout.write(log_string)
+                    sys.stdout.flush()
+                    log.write(log_string)
+                    log.flush()
 
-        job.execute()
-        if job.read_flo:
-            zipped.writestr(job.destination, job.read_flo.read())
-        for i in job.items():
-            queued.append(i)
+                while queued:
+                    kwargs = queued.pop()
+                    log_write(None, None, f'Considering job {kwargs}')
 
-        job.cleanup()
+                    kwargs['log'] = log
+                    kwargs['zipped'] = zipped
+                    job = JOB_MAP.get(kwargs['type'])(**kwargs)
 
-    zipped.close()
+                    try:
+                        for newjob in job.execute():
+                            queued.append(newjob)
+                    except Exception as e:
+                        log_write(
+                            job['type'],
+                            job['id'],
+                            f'Exception while executing job: {e}')
+
+            with open(log_file) as log:
+                zipped.writestr('clingwrap.log', log.read())
 
 
 cli.add_command(gather)
