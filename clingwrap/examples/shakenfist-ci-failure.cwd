@@ -1,192 +1,229 @@
 ---
-commands:
-  - name: Kernel version and architecture
-    destination: _commands/uname
-    shell: uname -a
+- name: Kernel version and architecture
+  type: shell
+  command: uname -a
+  destination: _commands/uname
 
-  - name: Descriptive information about the OS
-    destination: etc/os-release
-    file: /etc/os-release
+- name: Descriptive information about the OS
+  type: file
+  source: /etc/os-release
+  destination: etc/os-release
 
-  - name: apparmor configuration file
-    destination: etc/apparmor
-    file: etc/apparmor
+- name: apparmor configuration file
+  type: file
+  source: etc/apparmor
+  destination: etc/apparmor
 
-  - name: apparmor configuration directory
-    destination: etc/apparmor.d
-    directory: /etc/apparmor.d
+- name: apparmor configuration directory
+  type: directory
+  source: /etc/apparmor.d
+  destination: etc/apparmor.d
 
-  - name: apache2 configuration
-    destination: etc/apache2
-    directory: /etc/apache2
+- name: apache2 configuration
+  type: directory
+  source: /etc/apache2
+  destination: etc/apache2
 
-  - name: Shaken Fist configuration
-    destination: etc/sf
-    directory: /etc/sf
+- name: Shaken Fist configuration
+  type: directory
+  source: /etc/sf
+  destination: etc/sf
 
-  - name: Installed system OS packages and versions
-    destination: _commands/dpkg
-    shell: dpkg -l
+- name: Installed system OS packages and versions
+  type: shell
+  command: dpkg -l
+  destination: _commands/dpkg
 
-  - name: Installed system pip packages and versions
-    destination: _commands/pip
-    shell: pip3 freeze
+- name: Installed system pip packages and versions
+  type: shell
+  command: pip3 freeze
+  destination: _commands/pip
 
-  - name: Installed Shaken Fist pip packages and versions
-    destination: _commands/pip-sf
-    shell: /srv/shakenfist/venv/bin/pip freeze
+- name: Installed Shaken Fist pip packages and versions
+  type: shell
+  command: /srv/shakenfist/venv/bin/pip freeze
+  destination: _commands/pip-sf
 
-  - name: Locked version of requirements based on what was used in this CI run
-    destination: _commands/pip-requirements-locked
-    shell: |
-      /srv/shakenfist/venv/bin/pip install hashin
-      touch /tmp/requirements-locked.txt
+- name: Locked version of requirements based on what was used in this CI run
+  type: shell
+  command: |
+    /srv/shakenfist/venv/bin/pip install hashin
+    touch /tmp/requirements-locked.txt
 
-      echo
-      for dependency in `/srv/shakenfist/venv/bin/pip freeze --local | egrep -v "(shakenfist|pkg[_\-]resources)"`
-      do
-          echo "Locking $dependency"
-          /srv/shakenfist/venv/bin/hashin $dependency --requirements /tmp/requirements-locked.txt
-      done
+    echo
+    for dependency in `/srv/shakenfist/venv/bin/pip freeze --local | egrep -v "(shakenfist|pkg[_\-]resources)"`
+    do
+        echo "Locking $dependency"
+        /srv/shakenfist/venv/bin/hashin $dependency --requirements /tmp/requirements-locked.txt
+    done
 
-      echo
-      cat /tmp/requirements-locked.txt
+    echo
+    cat /tmp/requirements-locked.txt
 
-      echo
-      echo "EOF"
+    echo
+    echo "EOF"
+  destination: _commands/pip-requirements-locked
 
-  - name: Python version
-    destination: _commands/python-version
-    shell: python3 --version
+- name: Python version
+  type: shell
+  command: python3 --version
+  destination: _commands/python-version
 
-  - name: systemd status
-    destination: _commands/systemctl-status
-    shell: systemctl status
+- name: systemd status
+  type: shell
+  command: systemctl status
+  destination: _commands/systemctl-status
 
-  - name: etcd systemd unit logs
-    destination: _commands/journalctl-etcd
-    shell: journalctl -u etcd
+- name: etcd systemd unit logs
+  type: shell
+  command: journalctl -u etcd
+  destination: _commands/journalctl-etcd
 
-  - name: libvirtd systemd unit logs
-    destination: _commands/journalctl-libvirtd
-    shell: journalctl -u libvirtd
+- name: libvirtd systemd unit logs
+  type: shell
+  command: journalctl -u libvirtd
+  destination: _commands/journalctl-libvirtd
 
-  - name: SF systemd target logs
-    destination: _commands/journalctl-sf-target
-    shell: journalctl -u sf.target
+- name: SF systemd target logs
+  type: shell
+  command: journalctl -u sf.target
+  destination: _commands/journalctl-sf-target
 
-  - name: SF systemd units
-    shell_emitter: |
-      for item in `find /etc/systemd/system -type f -name "sf-*" | sed 's/.*\///'`
-      do
-        echo "commands:
-      - name: Record systemd unit (${item})
-        destination: etc/systemd/system/${item}
-        file: /etc/systemd/system/${item}
-      "
-      done
+- name: SF systemd units
+  type: shell_emitter
+  command: |
+    for item in `find /etc/systemd/system -type f -name "sf-*" | sed 's/.*\///'`
+    do
+      echo "
+    - name: Record systemd unit (${item})
+      type: file
+      source: /etc/systemd/system/${item}
+      destination: etc/systemd/system/${item}
+    "
+    done
 
-  - name: SF systemd unit pid and abort files
-    shell_emitter: |
-      for item in `find /run/sf -type f | sed 's/.*\///'`
-      do
-        echo "commands:
-      - name: Record contents of file (${item})
-        destination: run/sf/${item}
-        file: /run/sf/${item}
-      "
-      done
+- name: SF systemd unit pid and abort files
+  type: shell_emitter
+  command: |
+    for item in `find /run/sf -type f | sed 's/.*\///'`
+    do
+      echo "
+    - name: Record contents of file (${item})
+      type: file
+      source: /run/sf/${item}
+      destination: run/sf/${item}
+    "
+    done
 
-  - name: libvirt VMs
-    destination: _commands/virsh-list-all
-    shell: virsh list --all
+- name: libvirt VMs
+  type: shell
+  command: virsh list --all
+  destination: _commands/virsh-list-all
 
-  - name: Network interfaces
-    destination: _commands/ip-link
-    shell: ip link
+- name: Network interfaces
+  type: shell
+  command: ip link
+  destination: _commands/ip-link
 
-  - name: Network addresses
-    destination: _commands/ip-addr
-    shell: ip addr
+- name: Network addresses
+  type: shell
+  command: ip addr
+  destination: _commands/ip-addr
 
-  - name: Network routes
-    destination: _commands/ip-route
-    shell: ip route
+- name: Network routes
+  type: shell
+  command: ip route
+  destination: _commands/ip-route
 
-  - name: iptables
-    destination: _commands/iptables
-    shell: iptables -L -v -n
+- name: iptables
+  type: shell
+  command: iptables -L -v -n
+  destination: _commands/iptables
 
-  - name: Network namespaces
-    shell_emitter: |
-      for item in `find /var/run/netns -type f | sed 's/.*\///'`
-      do
-        echo "commands:
-      - name: Network interfaces (namespace ${item})
-        destination: _commands/netns-${item}/ip-link
-        shell: ip netns exec ${item} ip link
+- name: Network namespaces
+  type: shell_emitter
+  command: |
+    for item in `find /var/run/netns -type f | sed 's/.*\///'`
+    do
+      echo "
+    - name: Network interfaces (namespace ${item})
+      type: shell
+      command: ip netns exec ${item} ip link
+      destination: _commands/netns-${item}/ip-link
 
-      - name: Network addresses (namespace ${item})
-        destination: _commands/netns-${item}/ip-addr
-        shell: ip netns exec ${item} ip addr
+    - name: Network addresses (namespace ${item})
+      type: shell
+      command: ip netns exec ${item} ip addr
+      destination: _commands/netns-${item}/ip-addr
 
-      - name: Network routes (namespace ${item})
-        destination: _commands/netns-${item}/ip-route
-        shell: ip netns exec ${item} ip route
+    - name: Network routes (namespace ${item})
+      type: shell
+      command: ip netns exec ${item} ip route
+      destination: _commands/netns-${item}/ip-route
 
-      - name: iptables (namespace ${item})
-        destination: _commands/netns-${item}/iptables
-        shell: ip netns exec ${item} iptables -L -v -n
-      "
-      done
+    - name: iptables (namespace ${item})
+      type: shell
+      command: ip netns exec ${item} iptables -L -v -n
+      destination: _commands/netns-${item}/iptables
+    "
+    done
 
-  - name: vxlan networks
-    shell_emitter: |
-      for item in `ip link | grep ": vxlan-" | cut -f 2 -d ":" | sed 's/ //'`
-      do
-        echo "commands:
-      - name: vxlan iterface (vxlan ${item})
-        destination: _commands/${item}/ip-link
-        shell: ip -d link show ${item}
-      - name: vxlan forwarding (vxlan ${item})
-        destination: _commands/${item}/bridge-fdb-show
-        shell: bridge fdb show dev ${item}
-      - name: vxlan bridge (vxlan ${item})
-        destination: _commands/${item}/brctl-show
-        shell: brctl show br-${item}
-      "
-      done
+- name: vxlan networks
+  type: shell_emitter
+  command: |
+    for item in `ip link | grep ": vxlan-" | cut -f 2 -d ":" | sed 's/ //'`
+    do
+      echo "
+    - name: vxlan iterface (vxlan ${item})
+      type: shell
+      command: ip -d link show ${item}
+      destination: _commands/${item}/ip-link
 
-  - name: syslog
-    destination: var/log/syslog
-    file: /var/log/syslog
+    - name: vxlan forwarding (vxlan ${item})
+      type: shell
+      command: bridge fdb show dev ${item}
+      destination: _commands/${item}/bridge-fdb-show
 
-  - name: syslog.1
-    destination: var/log/syslog.1
-    file: /var/log/syslog.1
+    - name: vxlan bridge (vxlan ${item})
+      type: shell
+      command: brctl show br-${item}
+      destination: _commands/${item}/brctl-show
+    "
+    done
 
-  - name: libvirt logs
-    destination: var/log/libvirt
-    directory: /var/log/libvirt
+- name: syslog
+  type: file
+  source: /var/log/syslog
+  destination: var/log/syslog
 
-  - name: apache2 logs
-    destination: var/log/apache2
-    directory: /var/log/apache2
+- name: syslog.1
+  type: file
+  source: /var/log/syslog.1
+  destination: var/log/syslog.1
 
-  - name: privexec events database
-    destination: var/run/sf-localevents
-    file: /var/run/sf-localevents
+- name: libvirt logs
+  type: directory
+  source: /var/log/libvirt
+  destination: var/log/libvirt
 
-  - name: Shaken Fist instances
-    destination: srv/shakenfist/instances
-    directory: /srv/shakenfist/instances
-    exclude: "([hsv]d[ac-z]|nvme[0-9]|sc-.*)"
+- name: apache2 logs
+  type: directory
+  source: /var/log/apache2
+  destination: var/log/apache2
 
-  - name: Shaken Fist events
-    destination: srv/shakenfist/events
-    directory: /srv/shakenfist/events
-    exclude: ".*\\.lock"
+- name: Shaken Fist instances
+  type: directory
+  source: /srv/shakenfist/instances
+  destination: srv/shakenfist/instances
+  exclude: "([hsv]d[ac-z]|nvme[0-9]|sc-.*)"
 
-  - name: Running processes
-    destination: _commands/ps-aux
-    shell: ps -aux
+- name: Shaken Fist events
+  type: directory
+  source: /srv/shakenfist/events
+  destination: srv/shakenfist/events
+  exclude: ".*\\.lock"
+
+- name: Running processes
+  type: shell
+  command: ps -aux
+  destination: _commands/ps-aux
