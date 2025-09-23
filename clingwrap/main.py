@@ -46,6 +46,9 @@ class FileJob(Job):
 
     def execute(self):
         source = self.definition.get('source')
+        if not source:
+            return
+
         if os.path.exists(source):
             self.read_flo = open(source, 'rb')
         else:
@@ -179,7 +182,14 @@ def gather(ctx, target=None, output=None):
         else:
             # Target might also be the _name_ of a configuration we ship as an
             # example.
-            cmds = importlib.resources.read_text('clingwrap', 'examples', f'{target}.cwd')
+            with importlib.resources.path('clingwrap', 'examples') as data_path:
+                target_path = os.path.join(data_path, f'{target}.cwd')
+                if not os.path.exists(target_path):
+                    print('Target path {target_path} does not exist')
+                    sys.exit(1)
+
+                with open(target_path) as f:
+                    cmds = f.read()
 
     else:
         print('Reading command from stdin, send EOF to start processing')
