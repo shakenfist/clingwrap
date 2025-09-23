@@ -224,6 +224,8 @@ def gather(ctx, target=None, output=None):
 
                     try:
                         for newjob in job.execute():
+                            newjob['log'] = log
+                            newjob['zipped'] = zipped
                             queued.append(newjob)
                     except Exception as e:
                         log_write(
