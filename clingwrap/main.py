@@ -70,13 +70,13 @@ class DirectoryJob(Job):
         for root, dirs, files in os.walk(self.source):
             for dir in dirs:
                 for file in files:
-                    j = FileJob(
-                        type='file',
-                        name=jobname,
-                        source=os.path.join(root, dir, file),
-                        destination=os.path.join(self.destination, dir, file)
-                    )
-                    self.log(f'Yielding job {j.id}')
+                    j = {
+                        'type': 'file',
+                        'name': jobname,
+                        'source': os.path.join(root, dir, file),
+                        'destination': os.path.join(self.destination, dir, file)
+                    }
+                    self.log(f'Yielding job {j}')
                     yield j
 
 
