@@ -73,7 +73,7 @@ class DirectoryJob(Job):
                     'type': 'file',
                     'name': jobname,
                     'source': os.path.join(root, file),
-                    'destination': os.path.join(self.destination, file)
+                    'destination': os.path.join(self.destination, root, file)
                 }
                 self.log(f'Yielding job {j}')
                 yield j
