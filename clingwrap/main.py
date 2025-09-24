@@ -67,17 +67,16 @@ class DirectoryJob(Job):
     def execute(self):
         self.log('Executing')
         jobname = f'Generated FileJob for directory {self.source}'
-        for root, dirs, files in os.walk(self.source):
-            for dir in dirs:
-                for file in files:
-                    j = {
-                        'type': 'file',
-                        'name': jobname,
-                        'source': os.path.join(root, dir, file),
-                        'destination': os.path.join(self.destination, dir, file)
-                    }
-                    self.log(f'Yielding job {j}')
-                    yield j
+        for root, _, files in os.walk(self.source):
+            for file in files:
+                j = {
+                    'type': 'file',
+                    'name': jobname,
+                    'source': os.path.join(root, file),
+                    'destination': os.path.join(self.destination, file)
+                }
+                self.log(f'Yielding job {j}')
+                yield j
 
 
 class ShellJob(Job):
