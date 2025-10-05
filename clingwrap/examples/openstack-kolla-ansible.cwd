@@ -83,11 +83,16 @@
     - name: Inspect ${item} container
       type: shell
       command: docker inspect ${item}
-      destination: _commands/docker-inspect-${item}
+      destination: _commands/docker-${item}-inspect
 
     - name: Docker logs for ${item} container
       type: shell
       command: docker logs ${item}
-      destination: _commands/docker-logs-${item}
+      destination: _commands/docker-${item}-logs
+
+    - name: pip list for ${item} container system pip
+      type: shell
+      command: docker exec -t ${item} pip list
+      destination: _commands/docker-${item}-pip-list
     "
     done
