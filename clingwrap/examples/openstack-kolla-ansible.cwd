@@ -11,8 +11,13 @@
 
 - name: apparmor configuration file
   type: file
-  source: etc/apparmor
+  source: /etc/apparmor
   destination: etc/apparmor
+
+- name: hosts configuration file
+  type: file
+  source: /etc/hosts
+  destination: etc/hosts
 
 - name: Kolla-Ansible configuration
   type: directory
