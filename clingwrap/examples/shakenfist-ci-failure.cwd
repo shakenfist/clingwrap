@@ -11,13 +11,18 @@
 
 - name: apparmor configuration file
   type: file
-  source: etc/apparmor
+  source: /etc/apparmor
   destination: etc/apparmor
 
 - name: apparmor configuration directory
   type: directory
   source: /etc/apparmor.d
   destination: etc/apparmor.d
+
+- name: hosts configuration file
+  type: file
+  source: /etc/hosts
+  destination: etc/hosts
 
 - name: apache2 configuration
   type: directory
