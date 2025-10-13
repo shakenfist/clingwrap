@@ -22,7 +22,7 @@
 - name: hostname configuration file
   type: file
   source: /etc/hostname
-  destination: etc/name
+  destination: etc/hostname
 
 - name: hostname -a
   type: shell
