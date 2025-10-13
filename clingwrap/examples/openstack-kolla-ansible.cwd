@@ -19,6 +19,21 @@
   source: /etc/hosts
   destination: etc/hosts
 
+- name: hostname configuration file
+  type: file
+  source: /etc/hostname
+  destination: etc/name
+
+- name: hostname -a
+  type: shell
+  command: hostname -a
+  destination: _commands/hostname-a
+
+- name: hostname -f
+  type: shell
+  command: hostname -f
+  destination: _commands/hostname-f
+
 - name: Kolla-Ansible configuration
   type: directory
   source: /etc/kolla
