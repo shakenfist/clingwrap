@@ -34,6 +34,11 @@
   command: hostname -f
   destination: _commands/hostname-f
 
+- name: hostnamectl
+  type: shell
+  command: hostnamectl
+  destination: _commands/hostnamectl
+
 - name: Kolla-Ansible configuration
   type: directory
   source: /etc/kolla

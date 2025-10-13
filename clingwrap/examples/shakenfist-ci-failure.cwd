@@ -24,6 +24,26 @@
   source: /etc/hosts
   destination: etc/hosts
 
+- name: hostname configuration file
+  type: file
+  source: /etc/hostname
+  destination: etc/hostname
+
+- name: hostname -a
+  type: shell
+  command: hostname -a
+  destination: _commands/hostname-a
+
+- name: hostname -f
+  type: shell
+  command: hostname -f
+  destination: _commands/hostname-f
+
+- name: hostnamectl
+  type: shell
+  command: hostnamectl
+  destination: _commands/hostnamectl
+
 - name: apache2 configuration
   type: directory
   source: /etc/apache2
