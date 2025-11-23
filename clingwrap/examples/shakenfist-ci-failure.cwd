@@ -252,3 +252,23 @@
   type: shell
   command: ps -aux
   destination: _commands/ps-aux
+
+- name: apt configuration
+  type: directory
+  source: /etc/apt
+  destination: etc/apt
+
+- name: yum configuration
+  type: directory
+  source: /etc/yum
+  destination: etc/yum
+
+- name: dnf configuration
+  type: directory
+  source: /etc/dnf
+  destination: etc/dnf
+
+- name: Docker configuration
+  type: directory
+  source: /etc/docker
+  destination: etc/docker
