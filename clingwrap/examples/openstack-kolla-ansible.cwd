@@ -141,3 +141,8 @@
   type: directory
   source: /etc/docker
   destination: etc/docker
+
+- name: Docker info
+  type: shell
+  command: docker info
+  destination: _commands/docker-info
