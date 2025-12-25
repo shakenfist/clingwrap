@@ -1,6 +1,6 @@
 import click
 import datetime
-import importlib
+import importlib.resources
 import os
 import random
 import sys
