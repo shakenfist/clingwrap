@@ -248,6 +248,11 @@
   destination: srv/shakenfist/events
   exclude: ".*\\.lock"
 
+- name: Shaken Fist exceptions
+  type: directory
+  source: /srv/shakenfist/exceptions
+  destination: srv/shakenfist/exceptions
+
 - name: Running processes
   type: shell
   command: ps -aux
