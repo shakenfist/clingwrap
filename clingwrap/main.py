@@ -241,8 +241,13 @@ def gather(ctx, target=None, output=None):
                     log.write(log_string)
                     log.flush()
 
-                while queued:
-                    kwargs = queued.pop()
+                def process_job(kwargs):
+                    """Process a job and any jobs it yields immediately.
+
+                    This processes jobs depth-first rather than accumulating
+                    them in a queue, which reduces memory usage when processing
+                    directories with many files.
+                    """
                     log_write(None, None, f'Considering job {kwargs}')
 
                     kwargs['log'] = log
@@ -251,14 +256,17 @@ def gather(ctx, target=None, output=None):
 
                     try:
                         for newjob in job.execute():
-                            newjob['log'] = log
-                            newjob['zipped'] = zipped
-                            queued.append(newjob)
+                            # Process yielded jobs immediately instead of
+                            # accumulating them in a queue
+                            process_job(newjob)
                     except Exception as e:
                         log_write(
-                            job['type'],
-                            job['id'],
+                            kwargs['type'],
+                            job.id,
                             f'Exception while executing job: {e}')
+
+                for job_kwargs in queued:
+                    process_job(job_kwargs)
 
             with open(log_file) as log:
                 zipped.writestr('clingwrap.log', log.read())
