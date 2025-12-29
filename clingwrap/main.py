@@ -3,6 +3,7 @@ import datetime
 import importlib.resources
 import os
 import random
+import re
 import sys
 import tempfile
 import yaml
@@ -44,39 +45,66 @@ class FileJob(Job):
         self.source = kwargs['source']
         self.log(f'Job has source {self.source}')
 
-    def _execute_inner(self):
+    def execute(self):
+        """Override execute to stream file directly to zip without loading
+        into memory."""
+        self.log('Executing')
         if os.path.exists(self.source):
             self.log(f'Source {self.source} exists')
             try:
-                with open(self.source) as f:
-                    return f.read()
+                # Use write() instead of writestr() to stream from file
+                # without loading entire content into memory
+                file_size = os.path.getsize(self.source)
+                self._zipped.write(self.source, self.destination)
+                self.log(f'Wrote {file_size} bytes to {self.destination}')
             except Exception as e:
                 self.log(f'Exception while reading {self.source}: {e}')
-                return f'--- file {self.source} exception: {e} ---'
+                self._zipped.writestr(
+                    self.destination,
+                    f'--- file {self.source} exception: {e} ---'
+                )
         else:
             self.log(f'Source {self.source} does not exist')
-            return f'--- file {self.source} was absent ---'
+            self._zipped.writestr(
+                self.destination,
+                f'--- file {self.source} was absent ---'
+            )
+        return []
 
 
 class DirectoryJob(Job):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.source = kwargs['source']
+        self.exclude = kwargs.get('exclude')
         self.log(f'Job has source {self.source}')
+        if self.exclude:
+            self.log(f'Job has exclude pattern {self.exclude}')
 
     def execute(self):
         self.log('Executing')
         jobname = f'Generated FileJob for directory {self.source}'
+        exclude_re = re.compile(self.exclude) if self.exclude else None
+        skipped = 0
+
         for root, _, files in os.walk(self.source):
             for file in files:
+                filepath = os.path.join(root, file)
+                if exclude_re and exclude_re.search(filepath):
+                    skipped += 1
+                    continue
+
                 j = {
                     'type': 'file',
                     'name': jobname,
-                    'source': os.path.join(root, file),
+                    'source': filepath,
                     'destination': os.path.join(self.destination, root, file)
                 }
                 self.log(f'Yielding job {j}')
                 yield j
+
+        if skipped:
+            self.log(f'Skipped {skipped} files matching exclude pattern')
 
 
 class ShellJob(Job):
@@ -213,8 +241,13 @@ def gather(ctx, target=None, output=None):
                     log.write(log_string)
                     log.flush()
 
-                while queued:
-                    kwargs = queued.pop()
+                def process_job(kwargs):
+                    """Process a job and any jobs it yields immediately.
+
+                    This processes jobs depth-first rather than accumulating
+                    them in a queue, which reduces memory usage when processing
+                    directories with many files.
+                    """
                     log_write(None, None, f'Considering job {kwargs}')
 
                     kwargs['log'] = log
@@ -223,14 +256,17 @@ def gather(ctx, target=None, output=None):
 
                     try:
                         for newjob in job.execute():
-                            newjob['log'] = log
-                            newjob['zipped'] = zipped
-                            queued.append(newjob)
+                            # Process yielded jobs immediately instead of
+                            # accumulating them in a queue
+                            process_job(newjob)
                     except Exception as e:
                         log_write(
-                            job['type'],
-                            job['id'],
+                            kwargs['type'],
+                            job.id,
                             f'Exception while executing job: {e}')
+
+                for job_kwargs in queued:
+                    process_job(job_kwargs)
 
             with open(log_file) as log:
                 zipped.writestr('clingwrap.log', log.read())
