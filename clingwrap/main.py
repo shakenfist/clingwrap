@@ -45,18 +45,31 @@ class FileJob(Job):
         self.source = kwargs['source']
         self.log(f'Job has source {self.source}')
 
-    def _execute_inner(self):
+    def execute(self):
+        """Override execute to stream file directly to zip without loading
+        into memory."""
+        self.log('Executing')
         if os.path.exists(self.source):
             self.log(f'Source {self.source} exists')
             try:
-                with open(self.source) as f:
-                    return f.read()
+                # Use write() instead of writestr() to stream from file
+                # without loading entire content into memory
+                file_size = os.path.getsize(self.source)
+                self._zipped.write(self.source, self.destination)
+                self.log(f'Wrote {file_size} bytes to {self.destination}')
             except Exception as e:
                 self.log(f'Exception while reading {self.source}: {e}')
-                return f'--- file {self.source} exception: {e} ---'
+                self._zipped.writestr(
+                    self.destination,
+                    f'--- file {self.source} exception: {e} ---'
+                )
         else:
             self.log(f'Source {self.source} does not exist')
-            return f'--- file {self.source} was absent ---'
+            self._zipped.writestr(
+                self.destination,
+                f'--- file {self.source} was absent ---'
+            )
+        return []
 
 
 class DirectoryJob(Job):
