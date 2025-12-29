@@ -3,6 +3,7 @@ import datetime
 import importlib.resources
 import os
 import random
+import re
 import sys
 import tempfile
 import yaml
@@ -62,21 +63,35 @@ class DirectoryJob(Job):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.source = kwargs['source']
+        self.exclude = kwargs.get('exclude')
         self.log(f'Job has source {self.source}')
+        if self.exclude:
+            self.log(f'Job has exclude pattern {self.exclude}')
 
     def execute(self):
         self.log('Executing')
         jobname = f'Generated FileJob for directory {self.source}'
+        exclude_re = re.compile(self.exclude) if self.exclude else None
+        skipped = 0
+
         for root, _, files in os.walk(self.source):
             for file in files:
+                filepath = os.path.join(root, file)
+                if exclude_re and exclude_re.search(filepath):
+                    skipped += 1
+                    continue
+
                 j = {
                     'type': 'file',
                     'name': jobname,
-                    'source': os.path.join(root, file),
+                    'source': filepath,
                     'destination': os.path.join(self.destination, root, file)
                 }
                 self.log(f'Yielding job {j}')
                 yield j
+
+        if skipped:
+            self.log(f'Skipped {skipped} files matching exclude pattern')
 
 
 class ShellJob(Job):
