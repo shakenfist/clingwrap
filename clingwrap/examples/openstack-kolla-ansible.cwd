@@ -112,7 +112,7 @@
 
     - name: Docker logs for ${item} container
       type: shell
-      command: docker logs ${item}
+      command: docker logs --tail 10000 ${item}
       destination: _commands/docker-${item}-logs
 
     - name: pip list for ${item} container system pip
