@@ -118,7 +118,8 @@ class ShellJob(Job):
         stderr = ''
 
         try:
-            stdout, stderr = processutils.execute(self.command, shell=True)
+            stdout, stderr = processutils.execute(
+                self.command, shell=True, timeout=30)
             return (
                 f'# {self.command}\n\n'
                 f'----- stdout -----\n{stdout.rstrip()}\n\n'
