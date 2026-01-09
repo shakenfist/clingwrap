@@ -145,7 +145,8 @@ class ShellEmitterJob(Job):
     def execute(self):
         self.log('Executing')
         try:
-            stdout, stderr = processutils.execute(self.command, shell=True)
+            stdout, stderr = processutils.execute(
+                self.command, shell=True, timeout=60)
             if stdout:
                 self.log(f'Received stdout while generating jobs: {stdout}')
             if stderr:
