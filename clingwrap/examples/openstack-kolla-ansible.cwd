@@ -112,9 +112,17 @@
 
     - name: Docker logs for ${item} container
       type: shell
-      command: docker logs --tail 10000 ${item}
+      command: docker logs --tail 2000 ${item}
       destination: _commands/docker-${item}-logs
+    "
+    done
 
+- name: Container pip lists (running containers only)
+  type: shell_emitter
+  command: |
+    for item in `docker ps --format '{{ .Names }}'`
+    do
+      echo "
     - name: pip list for ${item} container system pip
       type: shell
       command: docker exec -t ${item} pip list
