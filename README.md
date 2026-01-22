@@ -6,6 +6,25 @@ a system and stores that information in a zip file for later analysis. It was
 originally implemented for the Shaken Fist (https://shakenfist.com) project, but is
 more generally useful than that.
 
+For comprehensive documentation, see the [docs/](docs/) directory or start with
+the [documentation index](docs/index.md).
+
+## Quick Start
+
+Install clingwrap:
+
+```bash
+pip install clingwrap
+```
+
+Run with a built-in example:
+
+```bash
+clingwrap gather --target shakenfist-ci-failure --output debug.zip
+```
+
+## Configuration
+
 Clingwrap takes a configuration file (see examples/shakenfist-ci-failure.cwd for an
 example), and processes the list of commands in that file to produce the zip file
 of debugging output. The commands are specified in a simple YAML format, where
