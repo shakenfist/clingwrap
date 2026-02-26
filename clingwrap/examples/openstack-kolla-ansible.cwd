@@ -154,3 +154,63 @@
   type: shell
   command: docker info
   destination: _commands/docker-info
+
+- name: Docker version
+  type: shell
+  command: docker version
+  destination: _commands/docker-version
+
+- name: Docker disk usage
+  type: shell
+  command: docker system df -v
+  destination: _commands/docker-system-df
+
+- name: Docker images
+  type: shell
+  command: docker images --no-trunc
+  destination: _commands/docker-images
+
+- name: Docker recent events
+  type: shell
+  command: docker events --since 30m --until 0s 2>&1 | tail -1000
+  destination: _commands/docker-events
+
+- name: Docker daemon systemd unit logs
+  type: shell
+  command: journalctl -u docker --no-pager -n 5000
+  destination: _commands/journalctl-docker
+
+- name: Containerd systemd unit logs
+  type: shell
+  command: journalctl -u containerd --no-pager -n 5000
+  destination: _commands/journalctl-containerd
+
+- name: Docker daemon process info
+  type: shell
+  command: ps -eo pid,ppid,user,%mem,%cpu,vsz,rss,stat,start,time,comm | head -1; ps -eo pid,ppid,user,%mem,%cpu,vsz,rss,stat,start,time,comm | grep -E '(dockerd|containerd)' || echo 'No docker processes found'
+  destination: _commands/docker-process-info
+
+- name: Docker daemon open file descriptors
+  type: shell
+  command: for pid in $(pgrep dockerd); do echo "dockerd (pid ${pid}):"; ls /proc/${pid}/fd 2>/dev/null | wc -l; echo "fd limit:"; cat /proc/${pid}/limits 2>/dev/null | grep 'open files'; done
+  destination: _commands/docker-fd-count
+
+- name: Docker daemon memory usage
+  type: shell
+  command: for pid in $(pgrep dockerd); do echo "dockerd (pid ${pid}):"; cat /proc/${pid}/status 2>/dev/null | grep -E '(VmSize|VmRSS|VmPeak|Threads)'; done
+  destination: _commands/docker-memory-usage
+
+- name: Docker socket connections
+  type: shell
+  command: ss -xp | grep docker || echo 'No docker socket connections'
+  destination: _commands/docker-socket-connections
+
+- name: Docker storage driver state
+  type: shell
+  command: mount | grep -E '(overlay|docker)'; echo; df -h /var/lib/docker 2>/dev/null || echo '/var/lib/docker not found'; echo; ls /var/lib/docker/ 2>/dev/null || echo 'Cannot list /var/lib/docker'
+  destination: _commands/docker-storage-state
+
+- name: Temp directory state
+  type: shell
+  command: df -h /tmp; echo; ls -la /tmp/ 2>/dev/null | head -100
+  destination: _commands/tmp-state
