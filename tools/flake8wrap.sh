@@ -34,7 +34,10 @@ if test "$1" = "-HEAD" ; then
     fi
 
     echo "Running flake8 on ${filtered_files}"
-    diff -u --from-file /dev/null "${filtered_files}" | $FLAKE_COMMAND "${filtered_files}"
+    # shellcheck disable=SC2086
+    # Word splitting is intentional: filtered_files is a space-separated
+    # list of filenames that must be passed as separate arguments.
+    diff -u --from-file /dev/null ${filtered_files} | $FLAKE_COMMAND ${filtered_files}
 else
     echo "Running flake8 on all files"
     exec $FLAKE_COMMAND "$@"
