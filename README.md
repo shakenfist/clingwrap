@@ -9,6 +9,20 @@ more generally useful than that.
 For comprehensive documentation, see the [docs/](docs/) directory or start with
 the [documentation index](docs/index.md).
 
+## CI and Release Infrastructure
+
+This project uses automated CI via GitHub Actions:
+
+- **Automated code review** using Claude Code (`@shakenfist-bot` commands)
+- **Automated releases** to PyPI via Sigstore signing (see
+  [RELEASE-SETUP.md](RELEASE-SETUP.md))
+- **Dependency updates** via Renovate
+- **CodeQL** security scanning
+- **Pre-commit hooks** with actionlint and shellcheck
+
+See [AGENTS.md](AGENTS.md) for AI agent guidance and
+[ARCHITECTURE.md](ARCHITECTURE.md) for technical details.
+
 ## Quick Start
 
 Install clingwrap:

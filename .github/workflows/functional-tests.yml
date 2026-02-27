@@ -4,9 +4,10 @@ name: Functional tests
 # which is available as GITHUB_WORKSPACE. You can find other environment
 # variables at:
 # https://docs.github.com/en/actions/learn-github-actions/environment-variables
-#
-# The can_enqueue / can_merge scheme is as described at:
-# https://boinkor.net/2023/11/neat-github-actions-patterns-for-github-merge-queues/
+
+permissions:
+  contents: read
+  pull-requests: write
 
 on:
   workflow_dispatch:
@@ -25,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout code with two commits
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -50,3 +51,52 @@ jobs:
           . /tmp/venv-reqs/bin/activate
           pip3 install uv
           uv pip install -r pyproject.toml
+
+  check-bot-commit:
+    runs-on: [self-hosted, static]
+    if: github.event_name == 'pull_request'
+    outputs:
+      is_bot: ${{ steps.check.outputs.is_bot }}
+
+    steps:
+      - name: Check if latest commit is from a bot
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          author=$(gh api \
+            repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits \
+            --jq '.[-1].commit.author.email' 2>/dev/null || echo "unknown")
+          echo "Latest commit author: ${author}"
+          if [[ "${author}" == *"bot@shakenfist.com"* ]] || \
+             [[ "${author}" == *"noreply@anthropic.com"* ]]; then
+            echo "is_bot=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_bot=false" >> $GITHUB_OUTPUT
+          fi
+
+  automated_reviewer:
+    name: "Automated reviewer"
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    runs-on: [self-hosted, claude-code]
+    needs: [sanity_checks, check-bot-commit]
+    if: |
+      github.event_name == 'pull_request' &&
+      needs.check-bot-commit.outputs.is_bot != 'true'
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-reviewer
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run automated reviewer
+        uses: shakenfist/actions/review-pr-with-claude@main
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
