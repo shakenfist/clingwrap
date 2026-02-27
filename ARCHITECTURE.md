@@ -193,6 +193,17 @@ YAML with list of command dictionaries:
 | `oslo.concurrency` | Process execution with timeouts |
 | `shakenfist-utilities` | Shared utilities |
 
+## Release Process
+
+Releases are automated via GitHub Actions:
+
+1. Push a version tag (e.g., `v2.2`)
+2. The `release.yml` workflow builds the package
+3. A required reviewer approves the release
+4. The package is signed with Sigstore and published to PyPI
+
+See [RELEASE-SETUP.md](RELEASE-SETUP.md) for one-time setup steps.
+
 ## Future Considerations
 
 Potential enhancements:
