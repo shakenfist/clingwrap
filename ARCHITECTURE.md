@@ -5,6 +5,13 @@
 Clingwrap is a debugging information collection tool that processes a YAML
 configuration file to gather system state into a compressed ZIP archive.
 
+This document is the map. The user-facing documentation lives in
+`docs/`: [installation](docs/installation.md),
+[configuration](docs/configuration.md), the
+[command types](docs/command-types.md) reference and worked
+[examples](docs/examples.md), all indexed from
+[docs/index.md](docs/index.md).
+
 ## High-Level Architecture
 
 ```

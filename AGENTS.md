@@ -8,6 +8,20 @@ Clingwrap is a debugging information collection tool that bundles system state
 data into a zip file for later analysis. It is a relatively simple project with
 a single main module.
 
+## Where the documentation lives
+
+| Question | Document |
+|----------|----------|
+| How is it put together, and what does it depend on? | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| How do I install it? | [docs/installation.md](docs/installation.md) |
+| How do I configure it? | [docs/configuration.md](docs/configuration.md) |
+| What command types exist? | [docs/command-types.md](docs/command-types.md) |
+| What does a real config look like? | [docs/examples.md](docs/examples.md) |
+
+[docs/index.md](docs/index.md) is the full index. New user-visible
+documentation belongs in `docs/`; this file and `ARCHITECTURE.md` are a
+summary and an index into it.
+
 ## Key Files
 
 | File | Purpose |
@@ -65,14 +79,6 @@ tox -e flake8
 1. Create a new `.cwd` file in `clingwrap/examples/`
 2. Document it in `docs/examples.md`
 3. Update `docs/index.md` to list the new example
-
-## Dependencies
-
-Key dependencies:
-
-- `click` - CLI framework
-- `pyyaml` - Configuration parsing
-- `oslo.concurrency` - Process execution with timeouts
 
 ## CI Infrastructure
 
