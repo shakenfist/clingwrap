@@ -12,15 +12,15 @@ a single main module.
 
 | Question | Document |
 |----------|----------|
-| How is it put together, and what does it depend on? | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| How do I install it? | [docs/installation.md](docs/installation.md) |
+| Where do I start reading? | [docs/index.md](docs/index.md) |
+| How is it put together? | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| How do I install it, and what does it depend on? | [docs/installation.md](docs/installation.md) |
 | How do I configure it? | [docs/configuration.md](docs/configuration.md) |
 | What command types exist? | [docs/command-types.md](docs/command-types.md) |
 | What does a real config look like? | [docs/examples.md](docs/examples.md) |
 
-[docs/index.md](docs/index.md) is the full index. New user-visible
-documentation belongs in `docs/`; this file and `ARCHITECTURE.md` are a
-summary and an index into it.
+New user-visible documentation belongs in `docs/`; this file and
+`ARCHITECTURE.md` are a summary and an index into it.
 
 ## Key Files
 
@@ -108,13 +108,3 @@ Run `pre-commit run --all-files` before committing. Hooks include:
 
 - `actionlint` - GitHub Actions workflow linting
 - `shellcheck` - Shell script linting
-
-## Documentation
-
-Documentation is in `docs/` as Markdown files:
-
-- `index.md` - Main entry point
-- `installation.md` - Installation instructions
-- `configuration.md` - Configuration file format
-- `command-types.md` - All command types
-- `examples.md` - Example configurations
