@@ -5,6 +5,17 @@
 Clingwrap is a debugging information collection tool that processes a YAML
 configuration file to gather system state into a compressed ZIP archive.
 
+User-facing documentation lives in `docs/`; this document covers internal
+structure.
+
+| Question | Document |
+|----------|----------|
+| Where do I start reading? | [docs/index.md](docs/index.md) |
+| How do I install it, and what does it depend on? | [docs/installation.md](docs/installation.md) |
+| How do I configure it? | [docs/configuration.md](docs/configuration.md) |
+| What command types exist? | [docs/command-types.md](docs/command-types.md) |
+| What does a real config look like? | [docs/examples.md](docs/examples.md) |
+
 ## High-Level Architecture
 
 ```
@@ -186,12 +197,9 @@ YAML with list of command dictionaries:
 
 ## Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `click` | CLI framework |
-| `pyyaml` | YAML parsing |
-| `oslo.concurrency` | Process execution with timeouts |
-| `shakenfist-utilities` | Shared utilities |
+See [docs/installation.md](docs/installation.md#dependencies) for the runtime
+dependency list and licences. `pyproject.toml` is the source of truth for
+versions.
 
 ## Release Process
 
