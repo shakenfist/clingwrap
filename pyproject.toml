@@ -28,6 +28,20 @@ dependencies = [
 [project.scripts]
 clingwrap = "clingwrap.main:cli"
 
+# The tests must not ship. The exclude below drops them as a package, but
+# include-package-data defaults to true under pyproject.toml and
+# setuptools_scm's file finder offers every git-tracked file as package
+# data, so they would come straight back as data without this. The only
+# data read at runtime is examples/*.cwd, loaded through importlib.resources
+# by "clingwrap gather --target <name>", and the package-data entry below
+# names it explicitly.
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["clingwrap*"]
+exclude = ["clingwrap.tests*"]
+
 [tool.setuptools.package-data]
 clingwrap = [
     "examples/*.cwd"

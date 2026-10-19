@@ -30,6 +30,11 @@ useful for any system debugging scenario.
 - [Command Types](command-types.md) - Detailed documentation of all command
   types
 
+### Development
+
+- [Development](development.md) - CI, merging through the merge queue, and
+  how releases are gated on CI
+
 ## Quick Start
 
 Install clingwrap:
