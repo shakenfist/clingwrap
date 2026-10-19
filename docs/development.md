@@ -77,7 +77,7 @@ and the publishing jobs, and only builds and checks the packages.
 
 The version comes from the tag through setuptools_scm. The one-time
 setup, and how to verify a release, are in
-[RELEASE-SETUP.md](../RELEASE-SETUP.md).
+[RELEASE-SETUP.md](https://github.com/shakenfist/clingwrap/blob/develop/RELEASE-SETUP.md).
 
 ## Packaging
 
