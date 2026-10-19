@@ -10,8 +10,9 @@ is what the retest bot comment listed in `AGENTS.md` does, through
 `pr-retest.yml`).
 Its `sanity_checks` job lints with flake8 and checks that the
 dependencies in `pyproject.toml` install. On a pull request the
-automated reviewer then runs, and the "Can enqueue" and "Can merge"
-checks collect the result for the merge queue.
+automated reviewer then runs, and the "Can enqueue" check collects the
+result (it also runs on a dispatched run). On a merge queue entry the
+"Can merge" check collects it instead.
 
 ## Merging
 
@@ -76,7 +77,7 @@ and the publishing jobs, and only builds and checks the packages.
 
 The version comes from the tag through setuptools_scm. The one-time
 setup, and how to verify a release, are in
-[RELEASE-SETUP.md](https://github.com/shakenfist/clingwrap/blob/develop/RELEASE-SETUP.md).
+[RELEASE-SETUP.md](../RELEASE-SETUP.md).
 
 ## Packaging
 
