@@ -205,12 +205,15 @@ versions.
 
 Releases are automated via GitHub Actions:
 
-1. Push a version tag (e.g., `v2.2`)
-2. The `release.yml` workflow builds the package
+1. Push a version tag (e.g., `v2.2`) on a commit that went through the
+   merge queue
+2. The `release.yml` workflow checks that `functional-tests.yml` passed on
+   that commit, then builds and checks the package
 3. A required reviewer approves the release
 4. The package is signed with Sigstore and published to PyPI
 
-See [RELEASE-SETUP.md](RELEASE-SETUP.md) for one-time setup steps.
+See [docs/development.md](docs/development.md) for merging and releasing,
+and [RELEASE-SETUP.md](RELEASE-SETUP.md) for one-time setup steps.
 
 ## Future Considerations
 

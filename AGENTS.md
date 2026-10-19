@@ -18,6 +18,7 @@ a single main module.
 | How do I configure it? | [docs/configuration.md](docs/configuration.md) |
 | What command types exist? | [docs/command-types.md](docs/command-types.md) |
 | What does a real config look like? | [docs/examples.md](docs/examples.md) |
+| How do changes merge and how are releases cut? | [docs/development.md](docs/development.md) |
 
 New user-visible documentation belongs in `docs/`; this file and
 `ARCHITECTURE.md` are a summary and an index into it.
@@ -93,6 +94,11 @@ The project uses GitHub Actions for CI:
 - `renovate.yml` - Dependency updates via Renovate
 - `export-repo-config.yml` - Daily repo configuration export
 - `codeql-analysis.yml` - GitHub CodeQL security scanning
+
+Changes merge to `develop` through the merge queue, never around it: a
+release tag is only accepted on a commit whose queue run passed. A new
+`functional-tests.yml` job goes in the `needs:` of "Can enqueue" and "Can
+merge". See [docs/development.md](docs/development.md).
 
 ### Bot Commands
 
