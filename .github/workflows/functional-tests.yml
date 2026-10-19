@@ -84,6 +84,10 @@ jobs:
     # lives in the shared workflow so it stays in step with the
     # rest of the fleet.
     needs: [sanity_checks]
+    # There is no pull request to review on merge_group or
+    # workflow_dispatch events. The shared workflow skips those too,
+    # but guarding here means a queue run never starts it.
+    if: github.event_name == 'pull_request'
     # A cross-repository reusable workflow cannot grant itself more
     # token scope than its caller has, so the permissions go here.
     permissions:
@@ -100,7 +104,8 @@ jobs:
   # the other event. No job here is skipped on a pull request, so both
   # require every need to succeed. The automated reviewer is advisory
   # and deliberately not in needs: it must not be able to block a merge
-  # on an API hiccup.
+  # on an API hiccup. Keep the two needs: lists identical: a job in only
+  # one of them lets the queue merge without it.
   can-enqueue:
     name: "Can enqueue"
     needs:

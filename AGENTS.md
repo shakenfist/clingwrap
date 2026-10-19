@@ -18,6 +18,7 @@ a single main module.
 | How do I configure it? | [docs/configuration.md](docs/configuration.md) |
 | What command types exist? | [docs/command-types.md](docs/command-types.md) |
 | What does a real config look like? | [docs/examples.md](docs/examples.md) |
+| How do changes merge and how are releases cut? | [docs/development.md](docs/development.md) |
 
 New user-visible documentation belongs in `docs/`; this file and
 `ARCHITECTURE.md` are a summary and an index into it.
