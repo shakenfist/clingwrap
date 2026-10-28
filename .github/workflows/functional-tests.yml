@@ -5,9 +5,11 @@ name: Functional tests
 # variables at:
 # https://docs.github.com/en/actions/learn-github-actions/environment-variables
 
+# Only automated_reviewer writes to pull requests, and it grants itself
+# that scope. A merge_group token is not downgraded for forks the way a
+# pull_request one is, so the default here stays read-only.
 permissions:
   contents: read
-  pull-requests: write
 
 on:
   # pr-retest.yml re-runs this workflow by dispatching it.
