@@ -89,6 +89,8 @@ The project uses GitHub Actions for CI:
   and automated Claude Code review
 - `pr-re-review.yml` - Re-trigger automated review via bot comment
 - `pr-retest.yml` - Re-run functional tests via bot comment
+- `supply-chain.yml` - Scans the git history for leaked credentials,
+  deliberately unfiltered and not a required check
 - `release.yml` - Automated PyPI releases with Sigstore signing
 - `renovate.yml` - Dependency updates via Renovate
 - `export-repo-config.yml` - Daily repo configuration export

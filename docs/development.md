@@ -14,6 +14,37 @@ automated reviewer then runs, and the "Can enqueue" check collects the
 result (it also runs on a dispatched run). On a merge queue entry the
 "Can merge" check collects it instead.
 
+### Credential scanning
+
+`supply-chain.yml` scans the repository's own content rather than
+testing it, and so is a workflow of its own. Its `gitleaks` job runs
+`tools/gitleaks-scan.sh`, which scans every commit reachable from
+`HEAD` -- on a pull request that is the branch under test plus all of
+`develop` -- and fails if gitleaks reports anything. A secret committed
+and then reverted is still in the history and still needs rotating, so
+the checkout is a full one and the script refuses a shallow clone
+rather than reporting a clean history it never read.
+
+The script plants a GitHub token and an SSH private key in a scratch
+directory first and fails unless gitleaks reports both. A scanner that
+finds nothing is otherwise indistinguishable from a scanner that cannot
+find anything: a rule set that changed shape between releases, or an
+allowlist grown wide enough to forgive everything. Green means
+"scanned and found nothing", not "did nothing". Run it locally the same
+way CI does:
+
+```bash
+tools/gitleaks-scan.sh
+```
+
+The workflow is deliberately not path-filtered, unlike
+`functional-tests.yml`. A credential pasted into a code sample is a
+credential, and the one real secret this fleet's scanning has found was
+published in a user guide. It backs no required status check, which is
+why it also runs on pushes to `develop`: a commit that reached the
+branch without a pull request would otherwise never be scanned. The
+weekly cron catches a rule set that drifted under an unchanging tree.
+
 ## Merging
 
 Pull requests merge through a merge queue on `develop`, not with the
