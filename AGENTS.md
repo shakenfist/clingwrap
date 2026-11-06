@@ -93,6 +93,9 @@ The project uses GitHub Actions for CI:
 - `supply-chain.yml` - Scans the git history for leaked credentials and
   the agent context with skillsaw, deliberately unfiltered and not a
   required check
+- `mermaid-lint.yml` - Renders every mermaid diagram in the tracked
+  markdown; path-filtered to markdown and so deliberately not a required
+  check
 - `release.yml` - Automated PyPI releases with Sigstore signing
 - `renovate.yml` - Dependency updates via Renovate
 - `export-repo-config.yml` - Daily repo configuration export
@@ -101,7 +104,9 @@ The project uses GitHub Actions for CI:
 Changes merge to `develop` through the merge queue, never around it: a
 release tag is only accepted on a commit whose queue run passed. A new
 `functional-tests.yml` job goes in the `needs:` of "Can enqueue" and "Can
-merge". See [docs/development.md](docs/development.md).
+merge". `mermaid-lint.yml` is the deliberate exception: it can fail a pull
+request without being reachable from either. See
+[docs/development.md](docs/development.md).
 
 ### Bot Commands
 

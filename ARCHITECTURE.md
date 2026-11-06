@@ -18,25 +18,22 @@ structure.
 
 ## High-Level Architecture
 
+```mermaid
+flowchart LR
+    config["Configuration<br/>(a YAML .cwd file)"]
+    engine["Job processing engine"]
+    zip["ZIP archive output"]
+    jobs["Job classes<br/>FileJob<br/>DirectoryJob<br/>ShellJob<br/>ShellEmitterJob"]
+
+    config -->|read as job definitions| engine
+    engine -->|writes each job's output| zip
+    engine -->|dispatches each job to| jobs
+    jobs -->|emitted jobs, depth first| engine
 ```
-+-------------------+     +------------------+     +------------------+
-|                   |     |                  |     |                  |
-|  Configuration    |---->|  Job Processing  |---->|  ZIP Archive     |
-|  (YAML file)      |     |  Engine          |     |  Output          |
-|                   |     |                  |     |                  |
-+-------------------+     +------------------+     +------------------+
-                                 |
-                                 v
-                    +------------------------+
-                    |                        |
-                    |  Job Classes           |
-                    |  - FileJob             |
-                    |  - DirectoryJob        |
-                    |  - ShellJob            |
-                    |  - ShellEmitterJob     |
-                    |                        |
-                    +------------------------+
-```
+
+The last edge is the one the boxes alone do not show: `DirectoryJob`
+and `ShellEmitterJob` yield further jobs, which the engine processes
+immediately rather than queueing.
 
 ## Components
 

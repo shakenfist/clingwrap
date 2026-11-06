@@ -6,6 +6,9 @@ self-hosted-runner:
   labels:
     - claude-code
     - debian-13
+    # mermaid-lint.yml needs a docker daemon, which the static pool and
+    # the plain debian-13 image do not have.
+    - debian-13-docker
     - static
     - vm
     - s

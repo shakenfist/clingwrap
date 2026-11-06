@@ -34,6 +34,33 @@ through `sanity_checks`.
 A dispatched run has no diff to filter, so `check_paths` defaults its
 verdict to `true` and the lane runs.
 
+### Mermaid diagrams
+
+Mermaid fails at render time, not at commit time: a diagram with a
+syntax error commits cleanly, passes every other linter, and then
+shows an error box on GitHub and nothing at all on a mkdocs site.
+`mermaid-lint.yml` closes that gap by rendering every tracked markdown
+file that contains a `mermaid` fence, through `tools/mermaid-lint.sh`.
+Run the same check locally:
+
+```bash
+tools/mermaid-lint.sh                 # every tracked markdown file
+tools/mermaid-lint.sh ARCHITECTURE.md # just this one
+```
+
+Both files are copies of `templates/mermaid-lint/` in
+shakenfist/development and are synced from there rather than edited
+here. The job needs a docker daemon, so it runs on a
+`debian-13-docker` runner rather than a static one, and that label is
+listed in `.github/actionlint.yaml`.
+
+The lane is path-filtered to markdown and so is deliberately not a
+required status check: a required check in a path-filtered workflow
+never reports on the pull requests it filters out, and a check that
+never reports blocks the merge forever. It is the one job that can
+show red on a pull request without appearing in "Can enqueue" or "Can
+merge". Check it by eye before merging a diagram change.
+
 ### Content scanning
 
 `supply-chain.yml` scans the repository's own content rather than
