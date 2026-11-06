@@ -28,7 +28,13 @@ jobs:
   # These sanity checks used to be three separate jobs, but are now combined
   # to save a little time and reduce CI runner churn.
   sanity_checks:
-    runs-on: [self-hosted, vm, debian-13]
+    # The size is named rather than left to the conductor, which falls
+    # back to the first CI_SIZES entry -- "xs", one vCPU and 2048 MB --
+    # when the labels name none. "s" is 2 vCPU and 4096 MB, which is
+    # what two virtual environments and three pip installs want; the
+    # fleet's experience of pip on a 2048 MB runner with no swap is
+    # shakenfist/shakenfist#3696.
+    runs-on: [self-hosted, vm, debian-13, s]
     # On a merge group, key on the base branch rather than github.ref,
     # which is a new queue branch on every rebuild, so a superseded run
     # is cancelled. That is safe because the queue is serial
