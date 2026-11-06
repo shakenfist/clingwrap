@@ -14,7 +14,7 @@ automated reviewer then runs, and the "Can enqueue" check collects the
 result (it also runs on a dispatched run). On a merge queue entry the
 "Can merge" check collects it instead.
 
-### Credential scanning
+### Content scanning
 
 `supply-chain.yml` scans the repository's own content rather than
 testing it, and so is a workflow of its own. Its `gitleaks` job runs
@@ -37,13 +37,27 @@ way CI does:
 tools/gitleaks-scan.sh
 ```
 
+Its `agent-context` job lints `AGENTS.md` and anything under
+`.claude/` with [skillsaw](https://skillsaw.org/), looking for
+malformed structure, smuggled unicode and pasted credentials. It runs
+the `skillsaw` pre-commit hook rather than invoking skillsaw directly,
+so `.pre-commit-config.yaml`'s `rev` is the only place the version is
+written down -- skillsaw's rule set moves between releases, and
+renovate's pre-commit manager bumps the hook on its own, so a second
+pin in the workflow would drift without anyone choosing it. It runs in
+CI as well as in pre-commit because a hook can be skipped with
+`--no-verify`, or by a clone that never ran `pre-commit install`.
+
 The workflow is deliberately not path-filtered, unlike
 `functional-tests.yml`. A credential pasted into a code sample is a
 credential, and the one real secret this fleet's scanning has found was
-published in a user guide. It backs no required status check, which is
-why it also runs on pushes to `develop`: a commit that reached the
-branch without a pull request would otherwise never be scanned. The
-weekly cron catches a rule set that drifted under an unchanging tree.
+published in a user guide; a document is also exactly where an
+instruction aimed at an agent would be hidden, which is why the agent
+context lint lives here rather than in `sanity_checks`. The workflow
+backs no required status check, which is why it also runs on pushes to
+`develop`: a commit that reached the branch without a pull request
+would otherwise never be scanned. The weekly cron catches a rule set
+that drifted under an unchanging tree.
 
 ## Merging
 

@@ -89,8 +89,9 @@ The project uses GitHub Actions for CI:
   and automated Claude Code review
 - `pr-re-review.yml` - Re-trigger automated review via bot comment
 - `pr-retest.yml` - Re-run functional tests via bot comment
-- `supply-chain.yml` - Scans the git history for leaked credentials,
-  deliberately unfiltered and not a required check
+- `supply-chain.yml` - Scans the git history for leaked credentials and
+  the agent context with skillsaw, deliberately unfiltered and not a
+  required check
 - `release.yml` - Automated PyPI releases with Sigstore signing
 - `renovate.yml` - Dependency updates via Renovate
 - `export-repo-config.yml` - Daily repo configuration export
@@ -112,5 +113,6 @@ In PR comments, authorized users can use:
 
 Run `pre-commit run --all-files` before committing. Hooks include:
 
+- `skillsaw` - Agent context linting (also run in CI)
 - `actionlint` - GitHub Actions workflow linting
 - `shellcheck` - Shell script linting
