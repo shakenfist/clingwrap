@@ -88,7 +88,6 @@ The project uses GitHub Actions for CI:
 - `functional-tests.yml` - Main CI: flake8 linting, requirements validation,
   and automated Claude Code review
 - `pr-re-review.yml` - Re-trigger automated review via bot comment
-- `pr-address-comments.yml` - Address review comments via bot comment
 - `pr-retest.yml` - Re-run functional tests via bot comment
 - `release.yml` - Automated PyPI releases with Sigstore signing
 - `renovate.yml` - Dependency updates via Renovate
@@ -105,7 +104,6 @@ merge". See [docs/development.md](docs/development.md).
 In PR comments, authorized users can use:
 
 - `@shakenfist-bot please re-review` - Trigger another automated review
-- `@shakenfist-bot please address comments` - Have Claude Code fix review items
 - `@shakenfist-bot please retest` - Re-run functional tests
 
 ### Pre-commit Hooks
