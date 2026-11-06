@@ -86,7 +86,8 @@ tox -e flake8
 The project uses GitHub Actions for CI:
 
 - `functional-tests.yml` - Main CI: flake8 linting, requirements validation,
-  and automated Claude Code review
+  and automated Claude Code review, behind a `check_paths` filter job so a
+  docs-only change does not pay for a virtual machine
 - `pr-re-review.yml` - Re-trigger automated review via bot comment
 - `pr-retest.yml` - Re-run functional tests via bot comment
 - `supply-chain.yml` - Scans the git history for leaked credentials and

@@ -25,9 +25,77 @@ on:
       - develop
 
 jobs:
+  # Decides whether this pull request or queue entry touches anything a
+  # lane here exercises. sanity_checks runs on an ephemeral virtual
+  # machine, which is the expensive pool, and a change to docs/ alone
+  # has nothing for it to find.
+  #
+  # This is a filter job rather than a trigger-level paths-ignore
+  # because "Can enqueue" and "Can merge" are required status checks in
+  # the develop ruleset. A required check in a paths-ignore'd workflow
+  # never reports on a filtered pull request, and a required check that
+  # never reports blocks the merge forever; a skipped one satisfies it,
+  # which is what the two gates' jq below relies on.
+  #
+  # The filter runs on merge_group as well as pull_request, so a
+  # docs-only queue entry skips the lane too rather than paying for it
+  # at the last moment.
+  #
+  # The credential and agent-context scans deliberately do not consume
+  # this output -- they are in supply-chain.yml, which carries no filter
+  # at all, because a credential in a code sample is a credential and a
+  # document is where an instruction aimed at an agent would be hidden.
+  check_paths:
+    name: "Check paths"
+    runs-on: [self-hosted, static]
+    timeout-minutes: 10
+    # Default to 'true' rather than to a skip: an event the filter did
+    # not run on (workflow_dispatch) must run the lane, not bypass it.
+    outputs:
+      code_changed: ${{ steps.filter.outputs.code || 'true' }}
+    steps:
+      - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+      - uses: dorny/paths-filter@v4
+        id: filter
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        with:
+          # On merge_group, compare against the base_sha fixed in the
+          # event payload -- the develop commit the queue built this
+          # entry on -- not against the develop branch itself. The
+          # branch moves: once the queue has merged this entry develop
+          # contains the queued commit, so a "Re-run all jobs" would
+          # diff against a base already holding HEAD, find nothing, and
+          # let "Can merge" go green on skips having tested nothing --
+          # a run release.yml's gate would then count. A re-run keeps
+          # its original payload, so it sees the first attempt's diff.
+          # On pull_request events the action ignores base and compares
+          # against the pull request's base branch.
+          base: ${{ github.event.merge_group.base_sha || 'develop' }}
+          # By default a file matches the filter if it matches ANY
+          # listed pattern, which makes '**' match everything and
+          # silently defeats the exclusions. 'every' requires a file to
+          # match ALL patterns, which is the correct semantics for an
+          # "everything except documentation" filter.
+          predicate-quantifier: 'every'
+          # REVIEWS.md is excluded although this repository does not
+          # carry one yet, so that the exclusion is in force from the
+          # first commit of one rather than being remembered then.
+          filters: |
+            code:
+              - '**'
+              - '!REVIEWS.md'
+              - '!docs/**'
+      # Make the verdict visible in the log rather than inferred from
+      # which downstream jobs skipped.
+      - name: Report verdict
+        run: echo "code_changed=${{ steps.filter.outputs.code || 'true (defaulted)' }}"
+
   # These sanity checks used to be three separate jobs, but are now combined
   # to save a little time and reduce CI runner churn.
   sanity_checks:
+    needs: check_paths
+    if: needs.check_paths.outputs.code_changed == 'true'
     # The size is named rather than left to the conductor, which falls
     # back to the first CI_SIZES entry -- "xs", one vCPU and 2048 MB --
     # when the labels name none. "s" is 2 vCPU and 4096 MB, which is
@@ -108,19 +176,26 @@ jobs:
   # https://boinkor.net/2023/11/neat-github-actions-patterns-for-github-merge-queues/
   # "Can enqueue" reports on pull requests and "Can merge" on merge
   # queue entries; each is skipped, which GitHub treats as success, on
-  # the other event. No job here is skipped on a pull request, so both
-  # require every need to succeed. The automated reviewer is advisory
-  # and deliberately not in needs: it must not be able to block a merge
-  # on an API hiccup. Keep the two needs: lists identical: a job in only
-  # one of them lets the queue merge without it.
+  # the other event. The automated reviewer is advisory and deliberately
+  # not in needs: it must not be able to block a merge on an API
+  # hiccup. Keep the two needs: lists identical: a job in only one of
+  # them lets the queue merge without it.
+  #
+  # The jq treats a skipped need as satisfied, which is what lets a
+  # check_paths-driven skip pass a required check. The flip side is
+  # that a failed dependency shows up in its dependents as 'skipped',
+  # which would read as green -- so each gate must directly need every
+  # job whose failure should block it, check_paths included, rather
+  # than relying on a transitive need through sanity_checks.
   can-enqueue:
     name: "Can enqueue"
     needs:
+      - check_paths
       - sanity_checks
     # always(), not !cancelled(): if the run is cancelled as a
     # whole, this must still run and fail on the cancelled needs.
-    # A skipped check satisfies a required one, so a skip here
-    # would let an untested commit through.
+    # A skipped check satisfies a required one, so a skip of this
+    # job would let an untested commit through.
     if: ${{ always() && github.event_name != 'merge_group' }}
     # The steps read only the needs context, so the token needs nothing.
     permissions: {}
@@ -131,7 +206,7 @@ jobs:
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
         run: |
-          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '. | to_entries | map(.value.result == "success") | all')" >> "${GITHUB_ENV}"
+          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '. | to_entries | map([.value.result == "success", .value.result == "skipped"] | any) | all')" >> "${GITHUB_ENV}"
       - name: Check outcomes
         run: |
           [ "${ALL_SUCCESS}" == true ]
@@ -139,25 +214,29 @@ jobs:
   can-merge:
     name: "Can merge"
     needs:
+      - check_paths
       - sanity_checks
     # always(), not !cancelled(): if the run is cancelled as a
     # whole, this must still run and fail on the cancelled needs.
-    # A skipped check satisfies a required one, so a skip here
-    # would let an untested commit through.
+    # A skipped check satisfies a required one, so a skip of this
+    # job would let an untested commit through.
     if: ${{ always() && github.event_name == 'merge_group' }}
     # The steps read only the needs context, so the token needs nothing.
     permissions: {}
     runs-on: [self-hosted, static]
     timeout-minutes: 5
     steps:
-      # Every need must succeed: this run is the one release.yml's CI
-      # gate counts, and a job that skipped here would let an untested
-      # commit reach a release.
+      # This run is the one release.yml's CI gate counts. A need
+      # skipped by check_paths is accepted, which is sound because the
+      # skip means the queue entry changed no code: the tree it would
+      # have tested is the tree the previous entry's run already did.
+      # A need that skipped because something it depended on failed is
+      # the case the gates' direct needs: lists above exist to catch.
       - name: Transform outcomes
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
         run: |
-          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '. | to_entries | map(.value.result == "success") | all')" >> "${GITHUB_ENV}"
+          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '. | to_entries | map([.value.result == "success", .value.result == "skipped"] | any) | all')" >> "${GITHUB_ENV}"
       - name: Check outcomes
         run: |
           [ "${ALL_SUCCESS}" == true ]

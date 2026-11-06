@@ -14,6 +14,26 @@ automated reviewer then runs, and the "Can enqueue" check collects the
 result (it also runs on a dispatched run). On a merge queue entry the
 "Can merge" check collects it instead.
 
+`sanity_checks` runs on an ephemeral virtual machine, the expensive
+runner pool, so a `check_paths` job decides first whether the change
+touches anything the lane exercises. A pull request or queue entry
+that only edits `docs/` skips `sanity_checks`, and the automated
+reviewer with it. Because "Can enqueue" and "Can merge" are required
+status checks, the filtering has to be a job rather than a
+trigger-level `paths-ignore`: a required check in a filtered-out
+workflow never reports at all, and a check that never reports blocks
+the merge forever, while a skipped one satisfies it. Both gates
+therefore treat a skipped need as satisfied.
+
+That makes each gate's `needs:` list load bearing in a second way. A
+job that skipped because something it depended on failed is reported
+as `skipped` too, so a gate must directly name every job whose failure
+should block it -- `check_paths` included -- rather than reaching it
+through `sanity_checks`.
+
+A dispatched run has no diff to filter, so `check_paths` defaults its
+verdict to `true` and the lane runs.
+
 ### Content scanning
 
 `supply-chain.yml` scans the repository's own content rather than
@@ -79,7 +99,10 @@ first.
 
 A new job in `functional-tests.yml` goes in the `needs:` of both "Can
 enqueue" and "Can merge", or the queue will merge without it. The
-automated reviewer stays out of both, because it is advisory.
+automated reviewer stays out of both, because it is advisory. A new
+job on a `vm` runner also belongs behind `check_paths`; one that reads
+the repository's prose -- a content scanner, a documentation check --
+belongs in `supply-chain.yml` instead, where nothing filters it.
 
 Enqueueing a fork's pull request is also the point at which its code
 first runs unreviewed by GitHub's approval setting, which does not
