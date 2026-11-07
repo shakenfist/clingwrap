@@ -49,6 +49,16 @@ jobs:
     name: "Check paths"
     runs-on: [self-hosted, static]
     timeout-minutes: 10
+    # Pinned here rather than inherited from the file-level default,
+    # because the checkout comment below reasons about what the
+    # persisted token can reach: an edit that widens the file-level
+    # permissions must not quietly widen the one job that keeps its
+    # token in .git/config. On pull_request events paths-filter reads
+    # the changed files through the REST API, which needs no scope at
+    # all while this repository is public and would need
+    # pull-requests: read if it ever stopped being.
+    permissions:
+      contents: read
     # Default to 'true' rather than to a skip: an event the filter did
     # not run on (workflow_dispatch) must run the lane, not bypass it.
     outputs:
@@ -96,6 +106,15 @@ jobs:
           # match ALL patterns, which is the correct semantics for an
           # "everything except documentation" filter.
           predicate-quantifier: 'every'
+          # '**' matches dotted paths here, which this filter depends
+          # on: nearly everything it must classify as code is dotted
+          # (.github/**, .pre-commit-config.yaml, .gitignore), and
+          # picomatch does not match dotfiles by default. The action
+          # builds every matcher with `dot: true` --
+          # dorny/paths-filter's src/filter.ts, MatchOptions -- so the
+          # behaviour is the action's, not picomatch's default. Checked
+          # against the v4 tag rather than main.
+          #
           # REVIEWS.md is excluded although this repository does not
           # carry one yet, so that the exclusion is in force from the
           # first commit of one rather than being remembered then.
@@ -201,21 +220,26 @@ jobs:
   # hiccup. Keep the two needs: lists identical: a job in only one of
   # them lets the queue merge without it.
   #
-  # The jq treats a skipped need as satisfied, which is what lets a
-  # check_paths-driven skip pass a required check. The flip side is
-  # that a failed dependency shows up in its dependents as 'skipped',
-  # which would read as green -- so each gate must directly need every
-  # job whose failure should block it, check_paths included, rather
-  # than relying on a transitive need through sanity_checks.
+  # The jq treats a skipped need as satisfied only when check_paths
+  # reported no code, which is what lets a check_paths-driven skip pass
+  # a required check. The tolerance is read off that verdict rather
+  # than granted outright: when code_changed is 'true' every need must
+  # have succeeded, so the next job to arrive with an if: of its own
+  # cannot have its absence accepted. That is the rule the gates
+  # enforce rather than a rule a reader has to remember. The flip side
+  # of any tolerance is that a failed dependency shows up in its
+  # dependents as 'skipped', which would read as green -- so each gate
+  # must directly need every job whose failure should block it,
+  # check_paths included, rather than relying on a transitive need
+  # through sanity_checks.
   #
-  # check_paths is excluded from that tolerance and must have
-  # succeeded. Every other job's skip is only sound *because*
+  # check_paths itself is outside the tolerance in either mode and must
+  # have succeeded. Every other job's skip is only sound *because*
   # check_paths ran and said "no code", so a gate that accepted a
-  # skipped check_paths would go green having established nothing. The
-  # job has no if: of its own today and so cannot skip; naming it
-  # explicitly is what keeps that true when the next job arrives with
-  # its own guard, since a blanket "success or skipped" would accept
-  # that one's absence too.
+  # skipped check_paths would go green having established nothing. A
+  # check_paths that failed before its filter step leaves code_changed
+  # empty, which is not 'false', so the strict branch applies -- and
+  # the gate fails on check_paths regardless.
   can-enqueue:
     name: "Can enqueue"
     needs:
@@ -234,12 +258,16 @@ jobs:
       - name: Transform outcomes
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          CODE_CHANGED: ${{ needs.check_paths.outputs.code_changed }}
         run: |
-          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '
+          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq --arg code "${CODE_CHANGED}" '
               (.check_paths.result == "success")
               and ([to_entries[]
                     | select(.key != "check_paths")
-                    | (.value.result == "success" or .value.result == "skipped")]
+                    | if $code == "false"
+                      then (.value.result == "success" or .value.result == "skipped")
+                      else (.value.result == "success")
+                      end]
                    | all)')" >> "${GITHUB_ENV}"
       - name: Check outcomes
         run: |
@@ -269,12 +297,16 @@ jobs:
       - name: Transform outcomes
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          CODE_CHANGED: ${{ needs.check_paths.outputs.code_changed }}
         run: |
-          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '
+          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq --arg code "${CODE_CHANGED}" '
               (.check_paths.result == "success")
               and ([to_entries[]
                     | select(.key != "check_paths")
-                    | (.value.result == "success" or .value.result == "skipped")]
+                    | if $code == "false"
+                      then (.value.result == "success" or .value.result == "skipped")
+                      else (.value.result == "success")
+                      end]
                    | all)')" >> "${GITHUB_ENV}"
       - name: Check outcomes
         run: |

@@ -27,6 +27,15 @@
 # artefacts, and on a pull request HEAD already reaches the branch under
 # test and all of develop.
 #
+# The subcommand is `detect`, not the `gitleaks git` that upstream moved
+# to later in the 8.x series: Debian 13 packages gitleaks 8.16.0, where
+# `detect` is the current spelling and `git` does not exist. The
+# workflow installs the distribution package, so this is the spelling
+# that works there; switch when the packaged version has the other one,
+# not before. The positive control is what makes either spelling safe
+# to hold -- a subcommand that stopped working turns the run red with a
+# message, rather than leaving a history scan that read nothing green.
+#
 # Usage:
 #   tools/gitleaks-scan.sh [--gitleaks PATH]
 #

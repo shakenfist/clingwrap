@@ -48,6 +48,13 @@ tools/mermaid-lint.sh                 # every tracked markdown file
 tools/mermaid-lint.sh ARCHITECTURE.md # just this one
 ```
 
+Running it locally wants bash 4.4 or newer, for `mapfile -d`, and GNU
+coreutils, for `realpath --relative-to`: the Debian 13 runner CI uses,
+in other words. On macOS the stock bash is 3.2 and `realpath` is BSD's,
+so the script fails partway through with an error from the shell rather
+than one of its own explanatory refusals. Use a container or a Linux
+host there.
+
 Both files are copies of `templates/mermaid-lint/` in
 shakenfist/development and are synced from there rather than edited
 here. The job needs a docker daemon, so it runs on a
