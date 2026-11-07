@@ -71,6 +71,13 @@ jobs:
           # its original payload, so it sees the first attempt's diff.
           # On pull_request events the action ignores base and compares
           # against the pull request's base branch.
+          #
+          # The checkout above is shallow, so on merge_group the action
+          # has to fetch that raw SHA by object id before it can diff
+          # against it. If that ever fails this job fails, sanity_checks
+          # skips, and "Can merge" fails on check_paths -- the queue
+          # stalls rather than merging something untested, and the
+          # reason is in this job's log.
           base: ${{ github.event.merge_group.base_sha || 'develop' }}
           # By default a file matches the filter if it matches ANY
           # listed pattern, which makes '**' match everything and
@@ -89,7 +96,9 @@ jobs:
       # Make the verdict visible in the log rather than inferred from
       # which downstream jobs skipped.
       - name: Report verdict
-        run: echo "code_changed=${{ steps.filter.outputs.code || 'true (defaulted)' }}"
+        env:
+          CODE_CHANGED: ${{ steps.filter.outputs.code || 'true (defaulted)' }}
+        run: echo "code_changed=${CODE_CHANGED}"
 
   # These sanity checks used to be three separate jobs, but are now combined
   # to save a little time and reduce CI runner churn.
@@ -187,6 +196,15 @@ jobs:
   # which would read as green -- so each gate must directly need every
   # job whose failure should block it, check_paths included, rather
   # than relying on a transitive need through sanity_checks.
+  #
+  # check_paths is excluded from that tolerance and must have
+  # succeeded. Every other job's skip is only sound *because*
+  # check_paths ran and said "no code", so a gate that accepted a
+  # skipped check_paths would go green having established nothing. The
+  # job has no if: of its own today and so cannot skip; naming it
+  # explicitly is what keeps that true when the next job arrives with
+  # its own guard, since a blanket "success or skipped" would accept
+  # that one's absence too.
   can-enqueue:
     name: "Can enqueue"
     needs:
@@ -206,7 +224,12 @@ jobs:
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
         run: |
-          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '. | to_entries | map([.value.result == "success", .value.result == "skipped"] | any) | all')" >> "${GITHUB_ENV}"
+          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '
+              (.check_paths.result == "success")
+              and ([to_entries[]
+                    | select(.key != "check_paths")
+                    | (.value.result == "success" or .value.result == "skipped")]
+                   | all)')" >> "${GITHUB_ENV}"
       - name: Check outcomes
         run: |
           [ "${ALL_SUCCESS}" == true ]
@@ -236,7 +259,12 @@ jobs:
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
         run: |
-          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '. | to_entries | map([.value.result == "success", .value.result == "skipped"] | any) | all')" >> "${GITHUB_ENV}"
+          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '
+              (.check_paths.result == "success")
+              and ([to_entries[]
+                    | select(.key != "check_paths")
+                    | (.value.result == "success" or .value.result == "skipped")]
+                   | all)')" >> "${GITHUB_ENV}"
       - name: Check outcomes
         run: |
           [ "${ALL_SUCCESS}" == true ]

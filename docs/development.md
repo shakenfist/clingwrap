@@ -72,13 +72,19 @@ and then reverted is still in the history and still needs rotating, so
 the checkout is a full one and the script refuses a shallow clone
 rather than reporting a clean history it never read.
 
-The script plants a GitHub token and an SSH private key in a scratch
-directory first and fails unless gitleaks reports both. A scanner that
-finds nothing is otherwise indistinguishable from a scanner that cannot
-find anything: a rule set that changed shape between releases, or an
-allowlist grown wide enough to forgive everything. Green means
-"scanned and found nothing", not "did nothing". Run it locally the same
-way CI does:
+The script commits a GitHub token and an SSH private key to a scratch
+git repository first and fails unless gitleaks reports both. A scanner
+that finds nothing is otherwise indistinguishable from a scanner that
+cannot find anything: a rule set that changed shape between releases,
+or an allowlist grown wide enough to forgive everything. Green means
+"scanned and found nothing", not "did nothing".
+
+The control is a git repository, scanned with the same
+`--log-opts="HEAD"` invocation as the real scan, rather than a
+`--no-git` directory walk. Directory and history scanning are separate
+code paths in gitleaks, so a directory-mode control would stay green
+while the history scan read nothing -- and history is the mode this job
+exists for. Run it locally the same way CI does:
 
 ```bash
 tools/gitleaks-scan.sh
@@ -186,3 +192,24 @@ in `clingwrap/examples/*.cwd`, which `clingwrap gather --target <name>`
 loads by name. `include-package-data` is off in `pyproject.toml`, so
 any other data file the code needs at runtime has to be listed under
 `[tool.setuptools.package-data]`, or it will be missing from the wheel.
+
+## Documentation link conventions
+
+`README.md`'s links to other files in this repository are absolute
+`https://github.com/shakenfist/clingwrap/blob/develop/...` URLs.
+Everything else -- `AGENTS.md`, `ARCHITECTURE.md`, the pages under
+`docs/` -- uses relative links.
+
+The split is not an oversight. `pyproject.toml` sets `readme =
+"README.md"`, so README is the PyPI long description, and PyPI renders
+it on a page where a relative link resolves against `pypi.org` and
+404s. No other file in the repository is published anywhere but GitHub,
+where relative links are the ones that survive a fork, a rename and a
+tag.
+
+`develop` rather than a tag because it is this repository's default
+branch, so those links show the current documentation. A reader of a
+released sdist therefore follows them to documentation newer than their
+copy, which is the right trade for a link in a PyPI description: the
+alternative is a link into a tag that will eventually describe
+behaviour nobody runs any more.

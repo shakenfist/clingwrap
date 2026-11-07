@@ -6,6 +6,12 @@ a system and stores that information in a zip file for later analysis. It was
 originally implemented for the Shaken Fist (https://shakenfist.com) project, but is
 more generally useful than that.
 
+<!-- Links to files in this repository are absolute here and relative
+     everywhere else, because pyproject.toml makes this file the PyPI
+     long description and a relative link resolves against pypi.org.
+     See "Documentation link conventions" in docs/development.md before
+     changing one back. -->
+
 For comprehensive documentation, see the
 [docs/](https://github.com/shakenfist/clingwrap/tree/develop/docs) directory,
 or start with the

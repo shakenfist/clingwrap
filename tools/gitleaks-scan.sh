@@ -11,10 +11,10 @@
 # 2. A positive control proves the scanner can still fire. A detector
 #    which reports nothing is indistinguishable from a detector which is
 #    broken: a rule set that changed shape under us, a shallow clone, an
-#    allowlist grown wide enough to forgive everything. So we plant two
-#    credentials in a scratch directory and fail if gitleaks does not
-#    report both. Green here means "scanned and found nothing", not
-#    "did nothing".
+#    allowlist grown wide enough to forgive everything. So we commit two
+#    credentials to a scratch repository, scan it the same way as the
+#    real history scan, and fail if gitleaks does not report both. Green
+#    here means "scanned and found nothing", not "did nothing".
 #
 # Reachability from HEAD, rather than gitleaks' default of every ref, is
 # deliberate: it keeps the scan away from any branch carrying built
@@ -105,20 +105,43 @@ cd "$(git rev-parse --show-toplevel)"
 # between gitleaks releases is visible rather than merely halving the
 # control. Both come from the stock rule set; this repository carries no
 # gitleaks config of its own.
+#
+# The control is a scratch git repository scanned with the same
+# --log-opts="HEAD" invocation as the real scan below, rather than a
+# --no-git directory walk. Those are two different code paths in
+# gitleaks, and the history one is the mode this job exists for: a
+# renamed flag, or a release that reinterprets the revision range,
+# would leave a directory-mode control green while the history scan
+# read nothing at all. gitleaks prints "N commits scanned" for both, so
+# a range that matched nothing is visible in the log either way.
 CONTROL=$(mktemp -d)
 trap 'rm -rf "$CONTROL"' EXIT
 
+mkdir "$CONTROL/repo"
 printf 'GITHUB_TOKEN = "ghp_%s"\n' \
     "$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 36)" \
-    > "$CONTROL/planted.py"
+    > "$CONTROL/repo/planted.py"
 ssh-keygen -q -t rsa -b 2048 -N '' -C control@example.com \
-    -f "$CONTROL/id_rsa"
+    -f "$CONTROL/repo/id_rsa"
+
+# --template= so none of the host's git templates can drop a hook into
+# the scratch repository, and the identity and signing settings are
+# given per command rather than read from the runner's configuration,
+# which a minimal image may not have set at all. The report is written
+# above the work tree so it cannot become part of what is scanned.
+git -C "$CONTROL/repo" init -q --template= -b control
+git -C "$CONTROL/repo" add -A
+git -C "$CONTROL/repo" \
+    -c user.name='Positive control' \
+    -c user.email='control@example.com' \
+    -c commit.gpgsign=false \
+    commit -q -m 'Plant two credentials for the positive control.'
 
 echo
-echo "Positive control: two credentials planted in a scratch directory."
+echo "Positive control: two credentials committed to a scratch repository."
 set +e
-"$GITLEAKS" detect --source "$CONTROL" --no-git --redact --no-banner \
-    --report-path "$CONTROL/report.json" --report-format json
+"$GITLEAKS" detect --source "$CONTROL/repo" --log-opts="HEAD" --redact \
+    --no-banner --report-path "$CONTROL/report.json" --report-format json
 control_status=$?
 set -e
 
@@ -131,7 +154,14 @@ set -e
 # the report was absent or malformed is worth having; it is the exit
 # that is taken over. The path goes via argv rather than being
 # interpolated into the source, so an odd TMPDIR cannot break the parse.
-if ! found=$(python3 - "$CONTROL/report.json" <<'PYTHON'
+#
+# -I, because this runs with the working directory at the top of the
+# repository under test: without it sys.path[0] is "", so a pull
+# request adding a top-level json.py would have its own code imported
+# and run inside the credential scan, and could make the control report
+# that both planted credentials were found. -I also ignores
+# PYTHONPATH and the user site directory.
+if ! found=$(python3 -I - "$CONTROL/report.json" <<'PYTHON'
 import json
 import sys
 

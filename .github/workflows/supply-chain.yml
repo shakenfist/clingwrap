@@ -89,10 +89,32 @@ jobs:
       # drift without anyone choosing it. Running it in CI as well as
       # in pre-commit is the point: a hook can be skipped with
       # --no-verify, or by a clone that never ran `pre-commit install`.
+      #
+      # No same-repository guard, unlike the job in mermaid-lint.yml
+      # next door, and the difference is deliberate rather than an
+      # oversight. This step does run a fork's own
+      # .pre-commit-config.yaml, so a fork chooses the repository, rev
+      # and entry that execute here -- but mermaid-lint.yml's own
+      # comment calls its guard defence in depth rather than the
+      # boundary, since a fork that edits the script can delete the
+      # guard in the same commit. The boundary in both files is the
+      # same: an ephemeral virtual machine, a contents: read token, and
+      # GitHub's fork workflow approval setting. That is also what
+      # functional-tests.yml's sanity_checks has always relied on,
+      # running a fork's tox configuration on this pool, so adding a
+      # guard here would buy nothing this workflow does not already
+      # have.
+      #
+      # --clear so a reused path cannot leave a previous run's packages
+      # in the environment. Nothing reuses it on this ephemeral pool,
+      # and the fixed path matches sanity_checks' /tmp/venv-test, but
+      # the flag costs nothing and stops the correctness of this step
+      # depending on which pool it lands on -- which is why the hashin
+      # step in renovate.yml, on the long-lived static pool, passes it.
       - name: Lint agent context
         timeout-minutes: 5
         run: |
-          python3 -mvenv /tmp/venv-skillsaw
+          python3 -mvenv --clear /tmp/venv-skillsaw
           . /tmp/venv-skillsaw/bin/activate
           pip3 install uv
           uv pip install pre-commit
