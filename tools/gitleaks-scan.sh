@@ -16,6 +16,12 @@
 #    real history scan, and fail if gitleaks does not report both. Green
 #    here means "scanned and found nothing", not "did nothing".
 #
+#    The control runs against a scratch repository, which is what makes
+#    it a measurement of the scanner rather than of this tree -- and
+#    also what it cannot see: a configuration added to this repository
+#    applies to the real scan and not to the control. That one is
+#    covered by refusing to run at all when such a file appears, below.
+#
 # Reachability from HEAD, rather than gitleaks' default of every ref, is
 # deliberate: it keeps the scan away from any branch carrying built
 # artefacts, and on a pull request HEAD already reaches the branch under
@@ -96,6 +102,47 @@ fi
 
 cd "$(git rev-parse --show-toplevel)"
 
+# The control below runs against a scratch repository, so it proves the
+# scanner fires with the stock rule set -- not that the real scan is
+# still using that rule set. gitleaks picks up a config or an ignore
+# file from the directory it is pointed at, and the real scan is
+# pointed at this one, so an allowlist added here later would forgive
+# the real history while leaving the control green: a clean scan with
+# nothing behind it, which is the one outcome this script exists to
+# prevent. The control cannot see that, because its scratch repository
+# has neither file.
+#
+# So assert the absence rather than assume it. This is a refusal, not a
+# linting opinion: suppressing a finding is a decision to make
+# visibly, in a pull request that also decides what the control should
+# then plant, rather than by dropping a file in beside this script.
+# GITLEAKS_CONFIG is checked too -- it overrides discovery, and an
+# environment variable set in a workflow is even easier to miss than a
+# file in the tree.
+for config in .gitleaks.toml gitleaks.toml .gitleaksignore; do
+    if [ -e "$config" ]; then
+        echo "$config exists, so the real scan below runs with a"
+        echo "configuration the positive control does not share: an"
+        echo "allowlist here would forgive real findings while the"
+        echo "control stayed green."
+        echo
+        echo "If this repository genuinely needs one, teach the control"
+        echo "to run with it (--config) so a rule the allowlist kills is"
+        echo "a control failure, and then delete this check."
+        echo
+        echo "Do not trust a clean scan until this passes."
+        exit 1
+    fi
+done
+if [ -n "${GITLEAKS_CONFIG:-}" ]; then
+    echo "GITLEAKS_CONFIG is set (${GITLEAKS_CONFIG}), so the real scan"
+    echo "below runs with a configuration the positive control does not"
+    echo "share. See the comment above this check."
+    echo
+    echo "Do not trust a clean scan until this passes."
+    exit 1
+fi
+
 # The positive control. Both credentials are generated here rather than
 # written into this file, because a literal one would be found by the
 # scan below -- correctly, since a credential in a committed file is
@@ -103,8 +150,9 @@ cd "$(git rev-parse --show-toplevel)"
 #
 # Two rules rather than one, so a single rule quietly disappearing
 # between gitleaks releases is visible rather than merely halving the
-# control. Both come from the stock rule set; this repository carries no
-# gitleaks config of its own.
+# control. Both come from the stock rule set, which the check above
+# makes true of the real scan as well rather than merely stating it
+# here.
 #
 # The control is a scratch git repository scanned with the same
 # --log-opts="HEAD" invocation as the real scan below, rather than a

@@ -137,6 +137,25 @@ job on a `vm` runner also belongs behind `check_paths`; one that reads
 the repository's prose -- a content scanner, a documentation check --
 belongs in `supply-chain.yml` instead, where nothing filters it.
 
+Several jobs run a fork's own configuration on the self-hosted pool:
+`sanity_checks` runs its `tox.ini`, and `supply-chain.yml`'s
+`agent-context` job runs its `.pre-commit-config.yaml`, which chooses
+the repository, rev and entry that execute. Those jobs carry no
+same-repository guard, and the comments in both files say so. What
+makes that acceptable is not anything in the workflow files -- it is
+a repository setting, that a maintainer must approve a workflow run on
+every outside contributor's pull request, not merely a first-time
+one. Confirm it rather than assuming it:
+
+```bash
+gh api repos/shakenfist/clingwrap/actions/permissions/fork-pr-contributor-approval
+```
+
+It must report `all_external_contributors`; it was set to that on both
+the repository and the `shakenfist` organization as of November 2026.
+If it is ever relaxed to `first_time_contributors`, those two jobs
+need a same-repository guard before anything else here is trusted.
+
 Enqueueing a fork's pull request is also the point at which its code
 first runs unreviewed by GitHub's approval setting, which does not
 apply to merge queue runs. A queued commit runs all of its own code --

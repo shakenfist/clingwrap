@@ -54,6 +54,17 @@ jobs:
     outputs:
       code_changed: ${{ steps.filter.outputs.code || 'true' }}
     steps:
+      # The one checkout in this file that keeps the job token, and
+      # deliberately. On merge_group, paths-filter reaches base_sha by
+      # running `git fetch --depth=1 --no-tags origin <sha>` from this
+      # clone -- it uses the REST API only on pull_request events -- so
+      # the credentials actions/checkout leaves in .git/config are what
+      # authenticate that fetch. Do not tidy this to
+      # persist-credentials: false to match the other checkouts here:
+      # it would work only for as long as this repository stays public,
+      # which is not a property the merge queue should depend on. The
+      # exposure is small enough to accept instead: this job checks out
+      # the tree but runs nothing from it, and reads no secrets.
       - uses: actions/checkout@v7
         if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
       - uses: dorny/paths-filter@v4

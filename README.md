@@ -25,8 +25,9 @@ This project uses automated CI via GitHub Actions:
 - **Automated releases** to PyPI via Sigstore signing (see
   [RELEASE-SETUP.md](https://github.com/shakenfist/clingwrap/blob/develop/RELEASE-SETUP.md))
 - **Dependency updates** via Renovate
-- **CodeQL** security scanning
-- **Pre-commit hooks** with actionlint and shellcheck
+- **CodeQL** security scanning, plus a gitleaks scan of the whole git
+  history for leaked credentials
+- **Pre-commit hooks** with actionlint, shellcheck and skillsaw
 
 See [AGENTS.md](https://github.com/shakenfist/clingwrap/blob/develop/AGENTS.md) for AI agent guidance and
 [ARCHITECTURE.md](https://github.com/shakenfist/clingwrap/blob/develop/ARCHITECTURE.md) for technical details.
