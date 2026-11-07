@@ -6,8 +6,16 @@ a system and stores that information in a zip file for later analysis. It was
 originally implemented for the Shaken Fist (https://shakenfist.com) project, but is
 more generally useful than that.
 
-For comprehensive documentation, see the [docs/](docs/) directory or start with
-the [documentation index](docs/index.md).
+<!-- Links to files in this repository are absolute here and relative
+     everywhere else, because pyproject.toml makes this file the PyPI
+     long description and a relative link resolves against pypi.org.
+     See "Documentation link conventions" in docs/development.md before
+     changing one back. -->
+
+For comprehensive documentation, see the
+[docs/](https://github.com/shakenfist/clingwrap/tree/develop/docs) directory,
+or start with the
+[documentation index](https://github.com/shakenfist/clingwrap/blob/develop/docs/index.md).
 
 ## CI and Release Infrastructure
 
@@ -15,13 +23,14 @@ This project uses automated CI via GitHub Actions:
 
 - **Automated code review** using Claude Code (`@shakenfist-bot` commands)
 - **Automated releases** to PyPI via Sigstore signing (see
-  [RELEASE-SETUP.md](RELEASE-SETUP.md))
+  [RELEASE-SETUP.md](https://github.com/shakenfist/clingwrap/blob/develop/RELEASE-SETUP.md))
 - **Dependency updates** via Renovate
-- **CodeQL** security scanning
-- **Pre-commit hooks** with actionlint and shellcheck
+- **CodeQL** security scanning, plus a gitleaks scan of the whole git
+  history for leaked credentials
+- **Pre-commit hooks** with actionlint, shellcheck and skillsaw
 
-See [AGENTS.md](AGENTS.md) for AI agent guidance and
-[ARCHITECTURE.md](ARCHITECTURE.md) for technical details.
+See [AGENTS.md](https://github.com/shakenfist/clingwrap/blob/develop/AGENTS.md) for AI agent guidance and
+[ARCHITECTURE.md](https://github.com/shakenfist/clingwrap/blob/develop/ARCHITECTURE.md) for technical details.
 
 ## Quick Start
 

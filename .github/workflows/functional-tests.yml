@@ -25,10 +25,123 @@ on:
       - develop
 
 jobs:
+  # Decides whether this pull request or queue entry touches anything a
+  # lane here exercises. sanity_checks runs on an ephemeral virtual
+  # machine, which is the expensive pool, and a change to docs/ alone
+  # has nothing for it to find.
+  #
+  # This is a filter job rather than a trigger-level paths-ignore
+  # because "Can enqueue" and "Can merge" are required status checks in
+  # the develop ruleset. A required check in a paths-ignore'd workflow
+  # never reports on a filtered pull request, and a required check that
+  # never reports blocks the merge forever; a skipped one satisfies it,
+  # which is what the two gates' jq below relies on.
+  #
+  # The filter runs on merge_group as well as pull_request, so a
+  # docs-only queue entry skips the lane too rather than paying for it
+  # at the last moment.
+  #
+  # The credential and agent-context scans deliberately do not consume
+  # this output -- they are in supply-chain.yml, which carries no filter
+  # at all, because a credential in a code sample is a credential and a
+  # document is where an instruction aimed at an agent would be hidden.
+  check_paths:
+    name: "Check paths"
+    runs-on: [self-hosted, static]
+    timeout-minutes: 10
+    # Pinned here rather than inherited from the file-level default,
+    # because the checkout comment below reasons about what the
+    # persisted token can reach: an edit that widens the file-level
+    # permissions must not quietly widen the one job that keeps its
+    # token in .git/config. On pull_request events paths-filter reads
+    # the changed files through the REST API, which needs no scope at
+    # all while this repository is public and would need
+    # pull-requests: read if it ever stopped being.
+    permissions:
+      contents: read
+    # Default to 'true' rather than to a skip: an event the filter did
+    # not run on (workflow_dispatch) must run the lane, not bypass it.
+    outputs:
+      code_changed: ${{ steps.filter.outputs.code || 'true' }}
+    steps:
+      # The one checkout in this file that keeps the job token, and
+      # deliberately. On merge_group, paths-filter reaches base_sha by
+      # running `git fetch --depth=1 --no-tags origin <sha>` from this
+      # clone -- it uses the REST API only on pull_request events -- so
+      # the credentials actions/checkout leaves in .git/config are what
+      # authenticate that fetch. Do not tidy this to
+      # persist-credentials: false to match the other checkouts here:
+      # it would work only for as long as this repository stays public,
+      # which is not a property the merge queue should depend on. The
+      # exposure is small enough to accept instead: this job checks out
+      # the tree but runs nothing from it, and reads no secrets.
+      - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+      - uses: dorny/paths-filter@v4
+        id: filter
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        with:
+          # On merge_group, compare against the base_sha fixed in the
+          # event payload -- the develop commit the queue built this
+          # entry on -- not against the develop branch itself. The
+          # branch moves: once the queue has merged this entry develop
+          # contains the queued commit, so a "Re-run all jobs" would
+          # diff against a base already holding HEAD, find nothing, and
+          # let "Can merge" go green on skips having tested nothing --
+          # a run release.yml's gate would then count. A re-run keeps
+          # its original payload, so it sees the first attempt's diff.
+          # On pull_request events the action ignores base and compares
+          # against the pull request's base branch.
+          #
+          # The checkout above is shallow, so on merge_group the action
+          # has to fetch that raw SHA by object id before it can diff
+          # against it. If that ever fails this job fails, sanity_checks
+          # skips, and "Can merge" fails on check_paths -- the queue
+          # stalls rather than merging something untested, and the
+          # reason is in this job's log.
+          base: ${{ github.event.merge_group.base_sha || 'develop' }}
+          # By default a file matches the filter if it matches ANY
+          # listed pattern, which makes '**' match everything and
+          # silently defeats the exclusions. 'every' requires a file to
+          # match ALL patterns, which is the correct semantics for an
+          # "everything except documentation" filter.
+          predicate-quantifier: 'every'
+          # '**' matches dotted paths here, which this filter depends
+          # on: nearly everything it must classify as code is dotted
+          # (.github/**, .pre-commit-config.yaml, .gitignore), and
+          # picomatch does not match dotfiles by default. The action
+          # builds every matcher with `dot: true` --
+          # dorny/paths-filter's src/filter.ts, MatchOptions -- so the
+          # behaviour is the action's, not picomatch's default. Checked
+          # against the v4 tag rather than main.
+          #
+          # REVIEWS.md is excluded although this repository does not
+          # carry one yet, so that the exclusion is in force from the
+          # first commit of one rather than being remembered then.
+          filters: |
+            code:
+              - '**'
+              - '!REVIEWS.md'
+              - '!docs/**'
+      # Make the verdict visible in the log rather than inferred from
+      # which downstream jobs skipped.
+      - name: Report verdict
+        env:
+          CODE_CHANGED: ${{ steps.filter.outputs.code || 'true (defaulted)' }}
+        run: echo "code_changed=${CODE_CHANGED}"
+
   # These sanity checks used to be three separate jobs, but are now combined
   # to save a little time and reduce CI runner churn.
   sanity_checks:
-    runs-on: [self-hosted, vm, debian-13]
+    needs: check_paths
+    if: needs.check_paths.outputs.code_changed == 'true'
+    # The size is named rather than left to the conductor, which falls
+    # back to the first CI_SIZES entry -- "xs", one vCPU and 2048 MB --
+    # when the labels name none. "s" is 2 vCPU and 4096 MB, which is
+    # what two virtual environments and three pip installs want; the
+    # fleet's experience of pip on a 2048 MB runner with no swap is
+    # shakenfist/shakenfist#3696.
+    runs-on: [self-hosted, vm, debian-13, s]
     # On a merge group, key on the base branch rather than github.ref,
     # which is a new queue branch on every rebuild, so a superseded run
     # is cancelled. That is safe because the queue is serial
@@ -102,19 +215,40 @@ jobs:
   # https://boinkor.net/2023/11/neat-github-actions-patterns-for-github-merge-queues/
   # "Can enqueue" reports on pull requests and "Can merge" on merge
   # queue entries; each is skipped, which GitHub treats as success, on
-  # the other event. No job here is skipped on a pull request, so both
-  # require every need to succeed. The automated reviewer is advisory
-  # and deliberately not in needs: it must not be able to block a merge
-  # on an API hiccup. Keep the two needs: lists identical: a job in only
-  # one of them lets the queue merge without it.
+  # the other event. The automated reviewer is advisory and deliberately
+  # not in needs: it must not be able to block a merge on an API
+  # hiccup. Keep the two needs: lists identical: a job in only one of
+  # them lets the queue merge without it.
+  #
+  # The jq treats a skipped need as satisfied only when check_paths
+  # reported no code, which is what lets a check_paths-driven skip pass
+  # a required check. The tolerance is read off that verdict rather
+  # than granted outright: when code_changed is 'true' every need must
+  # have succeeded, so the next job to arrive with an if: of its own
+  # cannot have its absence accepted. That is the rule the gates
+  # enforce rather than a rule a reader has to remember. The flip side
+  # of any tolerance is that a failed dependency shows up in its
+  # dependents as 'skipped', which would read as green -- so each gate
+  # must directly need every job whose failure should block it,
+  # check_paths included, rather than relying on a transitive need
+  # through sanity_checks.
+  #
+  # check_paths itself is outside the tolerance in either mode and must
+  # have succeeded. Every other job's skip is only sound *because*
+  # check_paths ran and said "no code", so a gate that accepted a
+  # skipped check_paths would go green having established nothing. A
+  # check_paths that failed before its filter step leaves code_changed
+  # empty, which is not 'false', so the strict branch applies -- and
+  # the gate fails on check_paths regardless.
   can-enqueue:
     name: "Can enqueue"
     needs:
+      - check_paths
       - sanity_checks
     # always(), not !cancelled(): if the run is cancelled as a
     # whole, this must still run and fail on the cancelled needs.
-    # A skipped check satisfies a required one, so a skip here
-    # would let an untested commit through.
+    # A skipped check satisfies a required one, so a skip of this
+    # job would let an untested commit through.
     if: ${{ always() && github.event_name != 'merge_group' }}
     # The steps read only the needs context, so the token needs nothing.
     permissions: {}
@@ -124,8 +258,17 @@ jobs:
       - name: Transform outcomes
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          CODE_CHANGED: ${{ needs.check_paths.outputs.code_changed }}
         run: |
-          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '. | to_entries | map(.value.result == "success") | all')" >> "${GITHUB_ENV}"
+          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq --arg code "${CODE_CHANGED}" '
+              (.check_paths.result == "success")
+              and ([to_entries[]
+                    | select(.key != "check_paths")
+                    | if $code == "false"
+                      then (.value.result == "success" or .value.result == "skipped")
+                      else (.value.result == "success")
+                      end]
+                   | all)')" >> "${GITHUB_ENV}"
       - name: Check outcomes
         run: |
           [ "${ALL_SUCCESS}" == true ]
@@ -133,25 +276,38 @@ jobs:
   can-merge:
     name: "Can merge"
     needs:
+      - check_paths
       - sanity_checks
     # always(), not !cancelled(): if the run is cancelled as a
     # whole, this must still run and fail on the cancelled needs.
-    # A skipped check satisfies a required one, so a skip here
-    # would let an untested commit through.
+    # A skipped check satisfies a required one, so a skip of this
+    # job would let an untested commit through.
     if: ${{ always() && github.event_name == 'merge_group' }}
     # The steps read only the needs context, so the token needs nothing.
     permissions: {}
     runs-on: [self-hosted, static]
     timeout-minutes: 5
     steps:
-      # Every need must succeed: this run is the one release.yml's CI
-      # gate counts, and a job that skipped here would let an untested
-      # commit reach a release.
+      # This run is the one release.yml's CI gate counts. A need
+      # skipped by check_paths is accepted, which is sound because the
+      # skip means the queue entry changed no code: the tree it would
+      # have tested is the tree the previous entry's run already did.
+      # A need that skipped because something it depended on failed is
+      # the case the gates' direct needs: lists above exist to catch.
       - name: Transform outcomes
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          CODE_CHANGED: ${{ needs.check_paths.outputs.code_changed }}
         run: |
-          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq '. | to_entries | map(.value.result == "success") | all')" >> "${GITHUB_ENV}"
+          echo "ALL_SUCCESS=$(echo "${NEEDS_JSON}" | jq --arg code "${CODE_CHANGED}" '
+              (.check_paths.result == "success")
+              and ([to_entries[]
+                    | select(.key != "check_paths")
+                    | if $code == "false"
+                      then (.value.result == "success" or .value.result == "skipped")
+                      else (.value.result == "success")
+                      end]
+                   | all)')" >> "${GITHUB_ENV}"
       - name: Check outcomes
         run: |
           [ "${ALL_SUCCESS}" == true ]

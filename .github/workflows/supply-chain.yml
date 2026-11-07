@@ -1,0 +1,121 @@
+# Checks on the content of the repository itself: credentials in the
+# history, and smuggled instructions in the agent context.
+#
+# Runs on every pull request to develop and on pushes to develop, plus a
+# weekly cron to catch drift in the rule set -- a scanner whose rules
+# changed under us finds less than it did, and nothing else here would
+# notice.
+#
+# Deliberately NOT gated on a docs path filter, unlike functional-tests.
+# Every other lane can skip a documentation-only change; these two
+# cannot, because a credential pasted into a code sample is a
+# credential. The one real key secret this fleet's scanning has ever
+# found was published in a user guide, and a document is exactly where
+# an instruction aimed at an agent would be hidden. That reasoning is
+# why the agent context lint lives here rather than in the sanity_checks
+# job of functional-tests, which is gated on a filter excluding docs/**.
+#
+# gitleaks-action@v2 refuses to run on organization repositories without
+# a paid licence, so the upstream gitleaks binary is invoked directly,
+# which has no such restriction. gitleaks is only packaged from Debian 13
+# (trixie) onward -- bookworm has no package -- so the job runs on
+# debian-13.
+#
+# This workflow backs no required status check. It is advisory, which is
+# also why it carries a push trigger: a commit that reached develop
+# without a pull request would otherwise never be scanned.
+
+name: Supply chain
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+  schedule:
+    # Weekly at 09:00 UTC on Monday.
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: gitleaks
+    runs-on: [self-hosted, vm, debian-13, s]
+    # The scan itself is under a tenth of a second over 156 commits.
+    # This is the backstop for the checkout and the install.
+    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-gitleaks
+      cancel-in-progress: true
+
+    steps:
+      # fetch-depth: 0 is load bearing. A secret committed and then
+      # reverted is still in the history and still needs rotating, and
+      # tools/gitleaks-scan.sh refuses to run against a shallow clone
+      # rather than reporting a clean history it never looked at.
+      - name: Checkout code with full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # openssh-client for the positive control's ssh-keygen, which
+      # the gitleaks package does not pull in.
+      - name: Install gitleaks
+        run: sudo apt-get update && sudo apt-get install -y gitleaks openssh-client
+
+      - name: Scan history for credentials
+        run: tools/gitleaks-scan.sh
+
+  agent-context:
+    name: agent context
+    runs-on: [self-hosted, vm, debian-13, s]
+    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-agent-context
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Lints the agent context by running the pre-commit hook rather
+      # than invoking skillsaw directly, so .pre-commit-config.yaml's
+      # rev is the only place the version is written down. skillsaw's
+      # rule set moves between releases, and renovate's pre-commit
+      # manager bumps the hook on its own, so a second pin here would
+      # drift without anyone choosing it. Running it in CI as well as
+      # in pre-commit is the point: a hook can be skipped with
+      # --no-verify, or by a clone that never ran `pre-commit install`.
+      #
+      # No same-repository guard, unlike the job in mermaid-lint.yml
+      # next door, and the difference is deliberate rather than an
+      # oversight. This step does run a fork's own
+      # .pre-commit-config.yaml, so a fork chooses the repository, rev
+      # and entry that execute here -- but mermaid-lint.yml's own
+      # comment calls its guard defence in depth rather than the
+      # boundary, since a fork that edits the script can delete the
+      # guard in the same commit. The boundary in both files is the
+      # same: an ephemeral virtual machine, a contents: read token, and
+      # GitHub's fork workflow approval setting. That is also what
+      # functional-tests.yml's sanity_checks has always relied on,
+      # running a fork's tox configuration on this pool, so adding a
+      # guard here would buy nothing this workflow does not already
+      # have.
+      #
+      # --clear so a reused path cannot leave a previous run's packages
+      # in the environment. Nothing reuses it on this ephemeral pool,
+      # and the fixed path matches sanity_checks' /tmp/venv-test, but
+      # the flag costs nothing and stops the correctness of this step
+      # depending on which pool it lands on -- which is why the hashin
+      # step in renovate.yml, on the long-lived static pool, passes it.
+      - name: Lint agent context
+        timeout-minutes: 5
+        run: |
+          python3 -mvenv --clear /tmp/venv-skillsaw
+          . /tmp/venv-skillsaw/bin/activate
+          pip3 install uv
+          uv pip install pre-commit
+          pre-commit run skillsaw --all-files

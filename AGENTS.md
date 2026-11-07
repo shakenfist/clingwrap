@@ -86,10 +86,16 @@ tox -e flake8
 The project uses GitHub Actions for CI:
 
 - `functional-tests.yml` - Main CI: flake8 linting, requirements validation,
-  and automated Claude Code review
+  and automated Claude Code review, behind a `check_paths` filter job so a
+  docs-only change does not pay for a virtual machine
 - `pr-re-review.yml` - Re-trigger automated review via bot comment
-- `pr-address-comments.yml` - Address review comments via bot comment
 - `pr-retest.yml` - Re-run functional tests via bot comment
+- `supply-chain.yml` - Scans the git history for leaked credentials and
+  the agent context with skillsaw, deliberately unfiltered and not a
+  required check
+- `mermaid-lint.yml` - Renders every mermaid diagram in the tracked
+  markdown; path-filtered to markdown and so deliberately not a required
+  check
 - `release.yml` - Automated PyPI releases with Sigstore signing
 - `renovate.yml` - Dependency updates via Renovate
 - `export-repo-config.yml` - Daily repo configuration export
@@ -98,19 +104,21 @@ The project uses GitHub Actions for CI:
 Changes merge to `develop` through the merge queue, never around it: a
 release tag is only accepted on a commit whose queue run passed. A new
 `functional-tests.yml` job goes in the `needs:` of "Can enqueue" and "Can
-merge". See [docs/development.md](docs/development.md).
+merge". `mermaid-lint.yml` is the deliberate exception: it can fail a pull
+request without being reachable from either. See
+[docs/development.md](docs/development.md).
 
 ### Bot Commands
 
 In PR comments, authorized users can use:
 
 - `@shakenfist-bot please re-review` - Trigger another automated review
-- `@shakenfist-bot please address comments` - Have Claude Code fix review items
 - `@shakenfist-bot please retest` - Re-run functional tests
 
 ### Pre-commit Hooks
 
 Run `pre-commit run --all-files` before committing. Hooks include:
 
+- `skillsaw` - Agent context linting (also run in CI)
 - `actionlint` - GitHub Actions workflow linting
 - `shellcheck` - Shell script linting
