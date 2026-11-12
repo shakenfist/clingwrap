@@ -7,7 +7,7 @@ repos:
   # written down; CI runs this hook rather than invoking skillsaw
   # itself.
   - repo: https://github.com/stbenjam/skillsaw
-    rev: v0.22.0
+    rev: v0.23.0
     hooks:
       - id: skillsaw
 
