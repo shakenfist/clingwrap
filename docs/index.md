@@ -32,8 +32,8 @@ useful for any system debugging scenario.
 
 ### Development
 
-- [Development](development.md) - CI, merging through the merge queue, and
-  how releases are gated on CI
+- [Development](development.md) - CI, dependency updates, merging through
+  the merge queue, and how releases are gated on CI
 
 ## Quick Start
 

@@ -97,7 +97,6 @@ The project uses GitHub Actions for CI:
   markdown; path-filtered to markdown and so deliberately not a required
   check
 - `release.yml` - Automated PyPI releases with Sigstore signing
-- `renovate.yml` - Dependency updates via Renovate
 - `export-repo-config.yml` - Daily repo configuration export
 - `codeql-analysis.yml` - GitHub CodeQL security scanning
 

@@ -109,8 +109,9 @@ jobs:
       # in the environment. Nothing reuses it on this ephemeral pool,
       # and the fixed path matches sanity_checks' /tmp/venv-test, but
       # the flag costs nothing and stops the correctness of this step
-      # depending on which pool it lands on -- which is why the hashin
-      # step in renovate.yml, on the long-lived static pool, passes it.
+      # depending on which pool it lands on: a job moved to the
+      # long-lived static pool, where a fixed path does survive between
+      # runs, needs it.
       - name: Lint agent context
         timeout-minutes: 5
         run: |
