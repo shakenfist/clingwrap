@@ -10,6 +10,7 @@ self-hosted-runner:
     # the plain debian-13 image do not have.
     - debian-13-docker
     - static
+    - persistent
     - vm
     - s
 
