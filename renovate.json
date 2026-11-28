@@ -8,7 +8,7 @@
   },
   "packageRules": [
     {
-      "description": "Group grpc packages together with widen strategy. clingwrap is a client project installed across a wide range of distributions, so the floor of a >= constraint is not raised on every minor release: a raised floor or an exact pin sends pip to a source build on the newest Pythons, which have no wheels for older grpcio releases.",
+      "description": "Group grpc packages together with widen strategy. Inert today -- nothing here depends on grpc -- and kept against clingwrap taking such a dependency again, not as a live example to copy. clingwrap is a client project installed across a wide range of distributions, so the floor of a >= constraint is not raised on every minor release: a raised floor or an exact pin sends pip to a source build on the newest Pythons, which have no wheels for older grpcio releases.",
       "groupName": "grpc packages",
       "rangeStrategy": "widen",
       "matchPackageNames": [

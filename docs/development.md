@@ -133,18 +133,24 @@ used to carry was deleted rather than disabled.
 `renovate.json` is almost empty, and deliberately so. It extends
 `local>shakenfist/development:renovate-fleet`, the preset that carries
 the whole fleet policy: the author and assignee, the dependency
-dashboard, the three day `minimumReleaseAge`, the `pre-commit` manager
-that bumps the hook revisions above, action digest pinning, the
-Saturday cadence for ordinary updates and the monthly one for majors
-and CI tooling, and the rule that merges nothing automatically. A
-policy copied into every repository only reaches the ones somebody
-re-syncs; extended, a change to it reaches the fleet at once.
+dashboard, the three day `minimumReleaseAge`, rollback pull requests,
+the `pre-commit` manager that bumps the hook revisions above, action
+digest pinning and the custom manager that keeps a `# renovate:`
+version comment in step with the pin beside it, the Saturday cadence
+for ordinary updates and the monthly one for majors and CI tooling, and
+the rule that merges nothing automatically. A policy copied into every
+repository only reaches the ones somebody re-syncs; extended, a change
+to it reaches the fleet at once.
 
-What stays here is what only this repository needs: `constraints.python`,
-which matches `requires-python` in `pyproject.toml` so no update is
-proposed that the oldest supported Python cannot install, and a
-`packageRules` entry widening grpc ranges rather than raising their
-floor.
+What stays here is what only this repository needs. `constraints.python`
+matches `requires-python` in `pyproject.toml`, so no update is proposed
+that the oldest supported Python cannot install. The `packageRules`
+entry widening grpc ranges matches nothing today -- the dependencies are
+`oslo.concurrency`, `click` and `pyyaml` -- and is kept against
+clingwrap taking a grpc dependency again rather than as a live example:
+a client installed across many distributions wants the floor of a `>=`
+constraint left alone, because a raised floor or an exact pin sends pip
+to a source build on the Pythons that have no wheels for older releases.
 
 Nothing else belongs at the top level of that file. Renovate resolves a
 repository's own keys after the presets it extends, so a top-level key
