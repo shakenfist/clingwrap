@@ -24,7 +24,8 @@ This project uses automated CI via GitHub Actions:
 - **Automated code review** using Claude Code (`@shakenfist-bot` commands)
 - **Automated releases** to PyPI via Sigstore signing (see
   [RELEASE-SETUP.md](https://github.com/shakenfist/clingwrap/blob/develop/RELEASE-SETUP.md))
-- **Dependency updates** via Renovate
+- **Dependency updates** via Renovate, run fleet-wide from
+  shakenfist/development rather than from a workflow here
 - **CodeQL** security scanning, plus a gitleaks scan of the whole git
   history for leaked credentials
 - **Pre-commit hooks** with actionlint, shellcheck and skillsaw
